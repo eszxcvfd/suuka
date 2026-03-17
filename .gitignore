@@ -4,3 +4,28 @@
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# Node monorepo artifacts
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+*.log
+.env
+.env.*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+
+# Local agent/runtime artifacts
+.mail/
+.beads-village/
+.reservations/
+.hive/
+nul
