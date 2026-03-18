@@ -1,22 +1,42 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useId, useState } from 'react';
 
 interface MediaUploaderProps {
   onUpload: (file: File) => Promise<void>;
 }
 
 export function MediaUploader({ onUpload }: MediaUploaderProps) {
+  const inputId = useId();
+  const [isUploading, setIsUploading] = useState(false);
+
   async function handleChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      await onUpload(selectedFile);
-      event.target.value = '';
+      setIsUploading(true);
+      try {
+        await onUpload(selectedFile);
+        event.target.value = '';
+      } finally {
+        setIsUploading(false);
+      }
     }
   }
 
   return (
-    <label className="inline-flex cursor-pointer rounded bg-slate-900 px-4 py-2 text-white">
-      Upload media
-      <input className="hidden" type="file" onChange={handleChange} />
-    </label>
+    <div className="upload-control">
+      <input
+        id={inputId}
+        className="upload-input"
+        type="file"
+        disabled={isUploading}
+        onChange={handleChange}
+      />
+      <label
+        className="button button--primary upload-trigger"
+        htmlFor={inputId}
+        aria-disabled={isUploading}
+      >
+        {isUploading ? 'Uploading…' : 'Upload media'}
+      </label>
+    </div>
   );
 }

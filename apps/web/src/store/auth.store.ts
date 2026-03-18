@@ -1,35 +1,156 @@
 import { useMemo, useState } from 'react';
+import { AuthApi, SessionInfo } from '../services/auth-api';
 
 export interface SessionUser {
+  id?: string;
   email: string;
   displayName: string;
+  status?: 'active' | 'suspended' | 'deleted';
 }
 
 export interface AuthState {
+  mode:
+    | 'signIn'
+    | 'signUp'
+    | 'forgotPassword'
+    | 'resetPassword'
+    | 'verifyEmail'
+    | 'media'
+    | 'sessions';
+  sessions: SessionInfo[];
   isAuthenticated: boolean;
   user: SessionUser | null;
+  setMode: (
+    mode:
+      | 'signIn'
+      | 'signUp'
+      | 'forgotPassword'
+      | 'resetPassword'
+      | 'verifyEmail'
+      | 'media'
+      | 'sessions',
+  ) => void;
+  confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
+  loadSessions: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  revokeOtherSessions: (currentSessionId?: string) => Promise<void>;
+  revokeSession: (sessionId: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
+  signUp: (displayName: string, email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
+  verifyEmail: (token: string) => Promise<void>;
+}
+
+const authApi = new AuthApi();
+
+function normalizeDisplayName(displayName: string | undefined, email: string): string {
+  if (displayName && displayName.trim().length > 0) {
+    return displayName;
+  }
+  return email.split('@')[0] ?? email;
 }
 
 export function useAuthStore(): AuthState {
+  const [mode, setMode] = useState<
+    'signIn' | 'signUp' | 'forgotPassword' | 'resetPassword' | 'verifyEmail' | 'media' | 'sessions'
+  >('signIn');
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [user, setUser] = useState<SessionUser | null>(null);
 
   const value = useMemo<AuthState>(
     () => ({
+      mode,
+      sessions,
       isAuthenticated: Boolean(user),
       user,
+      setMode(
+        nextMode:
+          | 'signIn'
+          | 'signUp'
+          | 'forgotPassword'
+          | 'resetPassword'
+          | 'verifyEmail'
+          | 'media'
+          | 'sessions',
+      ): void {
+        setMode(nextMode);
+      },
+      async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+        if (!token || !newPassword) {
+          throw new Error('Token and new password are required');
+        }
+        await authApi.passwordResetConfirm({ token, newPassword });
+      },
+      async requestPasswordReset(email: string): Promise<void> {
+        if (!email) {
+          throw new Error('Email is required');
+        }
+        await authApi.passwordResetRequest({ email });
+      },
+      async loadSessions(): Promise<void> {
+        const nextSessions = await authApi.listSessions();
+        setSessions(nextSessions);
+      },
+      async revokeOtherSessions(currentSessionId?: string): Promise<void> {
+        await authApi.revokeOtherSessions(currentSessionId);
+        const nextSessions = await authApi.listSessions();
+        setSessions(nextSessions);
+      },
+      async revokeSession(sessionId: string): Promise<void> {
+        await authApi.revokeSession(sessionId);
+        const nextSessions = await authApi.listSessions();
+        setSessions(nextSessions);
+      },
+      async resendVerification(email: string): Promise<void> {
+        if (!email) {
+          throw new Error('Email is required');
+        }
+        await authApi.resendVerification({ email });
+      },
+      async signUp(displayName: string, email: string, password: string): Promise<void> {
+        if (!displayName || !email || !password) {
+          throw new Error('Display name, email and password are required');
+        }
+
+        const sessionOrUser = await authApi.signUp({ displayName, email, password });
+        const sessionUser = 'user' in sessionOrUser ? sessionOrUser.user : sessionOrUser;
+
+        setUser({
+          id: sessionUser.id,
+          email: sessionUser.email,
+          displayName: normalizeDisplayName(sessionUser.displayName, sessionUser.email),
+          status: sessionUser.status,
+        });
+        setMode('media');
+      },
       async signIn(email: string, password: string): Promise<void> {
         if (!email || !password) {
           throw new Error('Email and password are required');
         }
-        setUser({ email, displayName: email.split('@')[0] ?? email });
+
+        const session = await authApi.signIn({ email, password });
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          displayName: normalizeDisplayName(session.user.displayName, session.user.email),
+          status: session.user.status,
+        });
+        setMode('media');
       },
       signOut(): void {
         setUser(null);
+        setSessions([]);
+        setMode('signIn');
+      },
+      async verifyEmail(token: string): Promise<void> {
+        if (!token) {
+          throw new Error('Verification token is required');
+        }
+        await authApi.verifyEmail({ token });
       },
     }),
-    [user],
+    [mode, sessions, user],
   );
 
   return value;

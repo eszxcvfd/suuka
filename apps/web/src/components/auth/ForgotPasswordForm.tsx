@@ -1,17 +1,16 @@
 import { FormEvent, useId, useState } from 'react';
 
-interface SignInFormProps {
-  onSubmit: (email: string, password: string) => Promise<void>;
+interface ForgotPasswordFormProps {
+  onSubmit: (email: string) => Promise<void>;
 }
 
-export function SignInForm({ onSubmit }: SignInFormProps) {
+export function ForgotPasswordForm({ onSubmit }: ForgotPasswordFormProps) {
   const emailId = useId();
-  const passwordId = useId();
-  const errorId = useId();
+  const feedbackId = useId();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -19,11 +18,15 @@ export function SignInForm({ onSubmit }: SignInFormProps) {
       return;
     }
     setError(null);
+    setMessage(null);
     setIsSubmitting(true);
     try {
-      await onSubmit(email, password);
+      await onSubmit(email);
+      setMessage('If the account exists, reset instructions were sent.');
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Unable to sign in');
+      setError(
+        submitError instanceof Error ? submitError.message : 'Unable to request password reset',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -37,7 +40,7 @@ export function SignInForm({ onSubmit }: SignInFormProps) {
         </label>
         <input
           id={emailId}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={error || message ? feedbackId : undefined}
           className="field-input"
           type="email"
           autoComplete="email"
@@ -46,26 +49,16 @@ export function SignInForm({ onSubmit }: SignInFormProps) {
           onChange={(event) => setEmail(event.target.value)}
         />
       </div>
-      <div className="field">
-        <label className="field-label" htmlFor={passwordId}>
-          Password
-        </label>
-        <input
-          id={passwordId}
-          aria-describedby={error ? errorId : undefined}
-          className="field-input"
-          type="password"
-          autoComplete="current-password"
-          disabled={isSubmitting}
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </div>
       <button className="button button--primary" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Signing in…' : 'Sign in'}
+        {isSubmitting ? 'Sending reset link…' : 'Send reset link'}
       </button>
+      {message ? (
+        <p id={feedbackId} className="message message--success" aria-live="polite">
+          {message}
+        </p>
+      ) : null}
       {error ? (
-        <p id={errorId} className="message message--error" aria-live="polite">
+        <p id={feedbackId} className="message message--error" aria-live="polite">
           {error}
         </p>
       ) : null}

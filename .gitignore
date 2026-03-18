@@ -14,6 +14,10 @@ coverage/
 *.log
 .env
 .env.*
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/tsconfig.tsbuildinfo
+apps/web/src/**/*.js
 
 # OS/editor noise
 .DS_Store

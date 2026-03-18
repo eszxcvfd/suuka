@@ -10,15 +10,25 @@ interface MediaListProps {
 
 export function MediaList({ items }: MediaListProps) {
   if (!items.length) {
-    return <p className="text-sm text-slate-500">No media uploaded yet.</p>;
+    return (
+      <div className="empty-state" role="status">
+        <p className="empty-state__title">No media uploaded yet.</p>
+        <p className="empty-state__text">
+          Upload files to start building a shared workspace library.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className="media-list">
       {items.map((item) => (
-        <li key={item.id} className="rounded border border-slate-200 p-3">
-          <p className="font-medium">{item.name}</p>
-          <p className="text-xs text-slate-500">{item.bytes} bytes</p>
+        <li key={item.id} className="list-card">
+          <div className="list-card__body">
+            <p className="list-card__title">{item.name}</p>
+            <p className="list-card__meta">{item.bytes.toLocaleString()} bytes</p>
+          </div>
+          <span className="status-badge status-badge--info">Ready</span>
         </li>
       ))}
     </ul>
