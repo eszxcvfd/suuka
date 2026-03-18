@@ -1,0 +1,26 @@
+{
+  "documents": {
+    "grafana_com_docs_k6_latest_using-k6_environment-variables_.md": {
+      "url": "https://grafana.com/docs/k6/latest/using-k6/environment-variables/",
+      "title": "Untitled",
+      "fetchedAt": "2026-03-18T10:03:36.346Z",
+      "expiresAt": "2026-03-19T10:03:36.346Z",
+      "size": 170
+    },
+    "grafana_com_docs_k6_latest_set-up_set-up-distributed-k6_.md": {
+      "url": "https://grafana.com/docs/k6/latest/set-up/set-up-distributed-k6/",
+      "title": "Untitled",
+      "fetchedAt": "2026-03-18T10:03:36.381Z",
+      "expiresAt": "2026-03-19T10:03:36.381Z",
+      "size": 168
+    },
+    "render_com_docs_environment-variables.md": {
+      "url": "https://render.com/docs/environment-variables",
+      "title": "Default Environment Variables – Render Docs",
+      "fetchedAt": "2026-03-18T10:03:36.688Z",
+      "expiresAt": "2026-03-19T10:03:36.688Z",
+      "size": 7799
+    }
+  },
+  "lastUpdated": "2026-03-18T10:03:36.690Z"
+}

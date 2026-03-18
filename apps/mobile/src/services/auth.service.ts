@@ -1,4 +1,4 @@
-import { ApiClient } from './api-client';
+import { ApiClient, isAuthorizationDeniedError } from './api-client';
 
 interface SignInPayload {
   email: string;
@@ -35,6 +35,14 @@ interface SignInResponse {
   accessToken: string;
   refreshToken: string;
   user: SessionUser;
+}
+
+export interface VisibleMediaItem {
+  id: string;
+  ownerUserId: string;
+  publicId: string;
+  secureUrl: string;
+  status: 'uploaded' | 'processing' | 'ready' | 'failed' | 'deleted';
 }
 
 export interface SessionInfo {
@@ -83,8 +91,26 @@ export class AuthService {
 
   async revokeOtherSessions(currentSessionId?: string): Promise<{ ok: true }> {
     return this.apiClient.delete<{ ok: true }>(
-      currentSessionId ? `/auth/sessions?currentSessionId=${encodeURIComponent(currentSessionId)}` : '/auth/sessions',
+      currentSessionId
+        ? `/auth/sessions?currentSessionId=${encodeURIComponent(currentSessionId)}`
+        : '/auth/sessions',
     );
+  }
+
+  async listVisibleMedia(): Promise<VisibleMediaItem[]> {
+    try {
+      return await this.apiClient.get<VisibleMediaItem[]>('/media');
+    } catch (error) {
+      throw this.normalizeAuthorizationError(error);
+    }
+  }
+
+  normalizeAuthorizationError(error: unknown): Error {
+    if (isAuthorizationDeniedError(error)) {
+      return new Error('Protected media is unavailable for this account.');
+    }
+
+    return error instanceof Error ? error : new Error('Unable to load protected media.');
   }
 
   signOut(): void {

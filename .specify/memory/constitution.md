@@ -1,50 +1,99 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: unversioned template -> 1.0.0
+- Modified principles:
+  - Template Principle 1 -> I. Code Quality as a Merge Gate
+  - Template Principle 2 -> II. Testing Standards are Non-Negotiable
+  - Template Principle 3 -> III. User Experience Consistency by Default
+  - Template Principle 4 -> IV. Performance Budgets are Required
+  - Template Principle 5 -> V. Maintainability and Simplicity First
+- Added sections:
+  - Engineering Standards
+  - Delivery Workflow and Quality Gates
+- Removed sections:
+  - None
+- Templates requiring updates:
+  - ✅ .specify/templates/plan-template.md
+  - ✅ .specify/templates/spec-template.md
+  - ✅ .specify/templates/tasks-template.md
+  - ✅ .opencode/command/speckit.constitution.md
+  - ⚠ pending: runtime guidance docs (README.md/docs not present in repository)
+- Follow-up TODOs:
+  - None
+-->
+# Suuka Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Code Quality as a Merge Gate
+All changes MUST pass formatting, linting, and static checks before review approval.
+Code MUST remain readable, intentionally named, and scoped to the minimum change needed.
+Pull requests MUST include clear rationale for non-trivial design choices.
+Rationale: high code quality reduces regressions and keeps maintenance cost predictable.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Testing Standards are Non-Negotiable
+Behavior changes MUST include automated tests that fail before the fix or feature and pass
+after implementation. Test coverage MUST include the primary success path and relevant
+failure paths. Flaky or timing-dependent tests MUST be stabilized before merge.
+Rationale: deterministic tests are the main safeguard against silent regressions.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. User Experience Consistency by Default
+User-facing changes MUST align with established interaction patterns, wording conventions,
+accessibility expectations, and visual language. New flows MUST define loading, empty,
+error, and success states. UX decisions that intentionally diverge from existing patterns
+MUST be documented in the plan and reviewed explicitly.
+Rationale: consistent UX improves learnability, trust, and product quality.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Performance Budgets are Required
+Every feature plan MUST define measurable performance expectations for critical paths
+(for example p95 latency, interaction responsiveness, or render targets). Implementations
+MUST include validation steps proving those budgets are met before completion.
+Performance regressions without approved exceptions MUST block merge.
+Rationale: explicit budgets prevent gradual degradation and make trade-offs visible.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Maintainability and Simplicity First
+Designs MUST prefer the simplest solution that satisfies current requirements.
+New abstractions, dependencies, or architectural complexity MUST be justified with
+clear evidence that simpler alternatives are insufficient.
+Rationale: simplicity preserves delivery speed and long-term adaptability.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Engineering Standards
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- Specifications MUST include measurable success criteria and explicit non-functional
+  requirements for testing, UX consistency, and performance.
+- Plans MUST define quality checks, test strategy, UX validation, and performance
+  validation before implementation begins.
+- Tasks MUST map work to independently testable user outcomes and include exact file paths
+  for implementation and verification activities.
+- Exceptions to any principle MUST be recorded in plan complexity tracking with rationale,
+  impact, and reviewer sign-off.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Delivery Workflow and Quality Gates
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+1. Specification gate: requirements are clear, testable, and measurable.
+2. Planning gate: constitution checks pass and required quality/performance validation is
+   planned.
+3. Implementation gate: tests are written first for behavior changes, then code is
+   implemented.
+4. Review gate: reviewers confirm code quality, testing evidence, UX consistency, and
+   performance evidence.
+5. Completion gate: all required checks pass and no unresolved constitution violations
+   remain.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution is the highest-priority engineering policy for this repository.
+Amendments MUST be documented in the same change set as any dependent template updates,
+must include a semantic version bump rationale, and MUST be approved in review.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Versioning policy:
+- MAJOR: incompatible principle removals or redefinitions.
+- MINOR: new principle or materially expanded guidance.
+- PATCH: clarifications, wording improvements, or non-semantic edits.
+
+Compliance review expectations:
+- Every plan, task list, and implementation review MUST include constitution compliance.
+- Violations MUST be fixed before merge or recorded as an explicit, time-bound exception.
+- Exceptions MUST include owner, expiry, and follow-up action.
+
+**Version**: 1.0.0 | **Ratified**: 2026-03-17 | **Last Amended**: 2026-03-17

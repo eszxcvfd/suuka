@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { AuthApi, SessionInfo } from '../services/auth-api';
+import { AuthApi, SessionInfo, VisibleMediaItem } from '../services/auth-api';
 
 export interface SessionUser {
+  accountVisibility?: 'public' | 'private';
   id?: string;
   email: string;
   displayName: string;
+  role?: 'admin' | 'moderator' | 'user';
   status?: 'active' | 'suspended' | 'deleted';
 }
 
@@ -19,6 +21,7 @@ export interface AuthState {
     | 'sessions';
   sessions: SessionInfo[];
   isAuthenticated: boolean;
+  deniedStaffActionMessage: string | null;
   user: SessionUser | null;
   setMode: (
     mode:
@@ -32,6 +35,7 @@ export interface AuthState {
   ) => void;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
   loadSessions: () => Promise<void>;
+  loadMedia: () => Promise<VisibleMediaItem[]>;
   requestPasswordReset: (email: string) => Promise<void>;
   revokeOtherSessions: (currentSessionId?: string) => Promise<void>;
   revokeSession: (sessionId: string) => Promise<void>;
@@ -39,6 +43,7 @@ export interface AuthState {
   signUp: (displayName: string, email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
+  uploadMedia: (file: File) => Promise<VisibleMediaItem>;
   verifyEmail: (token: string) => Promise<void>;
 }
 
@@ -57,12 +62,14 @@ export function useAuthStore(): AuthState {
   >('signIn');
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [deniedStaffActionMessage] = useState<string | null>(null);
 
   const value = useMemo<AuthState>(
     () => ({
       mode,
       sessions,
       isAuthenticated: Boolean(user),
+      deniedStaffActionMessage,
       user,
       setMode(
         nextMode:
@@ -92,6 +99,9 @@ export function useAuthStore(): AuthState {
         const nextSessions = await authApi.listSessions();
         setSessions(nextSessions);
       },
+      async loadMedia(): Promise<VisibleMediaItem[]> {
+        return authApi.listVisibleMedia();
+      },
       async revokeOtherSessions(currentSessionId?: string): Promise<void> {
         await authApi.revokeOtherSessions(currentSessionId);
         const nextSessions = await authApi.listSessions();
@@ -116,10 +126,14 @@ export function useAuthStore(): AuthState {
         const sessionOrUser = await authApi.signUp({ displayName, email, password });
         const sessionUser = 'user' in sessionOrUser ? sessionOrUser.user : sessionOrUser;
 
+        authApi.setAccessToken('accessToken' in sessionOrUser ? sessionOrUser.accessToken : null);
+
         setUser({
           id: sessionUser.id,
           email: sessionUser.email,
           displayName: normalizeDisplayName(sessionUser.displayName, sessionUser.email),
+          accountVisibility: sessionUser.accountVisibility,
+          role: sessionUser.role,
           status: sessionUser.status,
         });
         setMode('media');
@@ -130,18 +144,25 @@ export function useAuthStore(): AuthState {
         }
 
         const session = await authApi.signIn({ email, password });
+        authApi.setAccessToken(session.accessToken);
         setUser({
           id: session.user.id,
           email: session.user.email,
           displayName: normalizeDisplayName(session.user.displayName, session.user.email),
+          accountVisibility: session.user.accountVisibility,
+          role: session.user.role,
           status: session.user.status,
         });
         setMode('media');
       },
       signOut(): void {
+        authApi.setAccessToken(null);
         setUser(null);
         setSessions([]);
         setMode('signIn');
+      },
+      async uploadMedia(file: File): Promise<VisibleMediaItem> {
+        return authApi.uploadMedia(file.name);
       },
       async verifyEmail(token: string): Promise<void> {
         if (!token) {
@@ -150,7 +171,7 @@ export function useAuthStore(): AuthState {
         await authApi.verifyEmail({ token });
       },
     }),
-    [mode, sessions, user],
+    [deniedStaffActionMessage, mode, sessions, user],
   );
 
   return value;

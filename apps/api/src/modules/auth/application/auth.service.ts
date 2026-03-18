@@ -44,7 +44,10 @@ interface AuthAuditEvent {
 
 @Injectable()
 export class AuthService {
-  private readonly refreshTokens = new Map<string, { email: string; sessionId: string; userId: string }>();
+  private readonly refreshTokens = new Map<
+    string,
+    { email: string; sessionId: string; userId: string }
+  >();
   private readonly verificationTokens = new Map<string, { expiresAt: number; userId: string }>();
   private readonly resetTokens = new Map<string, { expiresAt: number; userId: string }>();
   private readonly auditEvents: AuthAuditEvent[] = [];
@@ -59,7 +62,12 @@ export class AuthService {
   async signUp(email: string, password: string, displayName: string): Promise<AuthSessionResult> {
     const existing = await this.userRepository.findByEmail(email);
     if (existing) {
-      this.recordAuditEvent('register', 'failure', String((existing as unknown as { _id: unknown })._id), 'duplicate_email');
+      this.recordAuditEvent(
+        'register',
+        'failure',
+        String((existing as unknown as { _id: unknown })._id),
+        'duplicate_email',
+      );
       throw new ConflictException('Email is already registered');
     }
 
@@ -89,13 +97,23 @@ export class AuthService {
 
     const config = loadAuthConfig();
     if (config.requireVerifiedEmail && !user.emailVerified) {
-      this.recordAuditEvent('sign_in', 'failure', String((user as unknown as { _id: unknown })._id), 'email_unverified');
+      this.recordAuditEvent(
+        'sign_in',
+        'failure',
+        String((user as unknown as { _id: unknown })._id),
+        'email_unverified',
+      );
       throw new UnauthorizedException('Email verification required');
     }
 
     const validPassword = await this.passwordService.matches(password, user.passwordHash);
     if (!validPassword) {
-      this.recordAuditEvent('sign_in', 'failure', String((user as unknown as { _id: unknown })._id), 'invalid_password');
+      this.recordAuditEvent(
+        'sign_in',
+        'failure',
+        String((user as unknown as { _id: unknown })._id),
+        'invalid_password',
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -177,6 +195,21 @@ export class AuthService {
     return { ok: true };
   }
 
+  async assignRole(userId: string, role: 'admin' | 'moderator' | 'user'): Promise<{ ok: true }> {
+    await this.userRepository.updateAuthorizationState(userId, { role });
+    this.recordAuditEvent('session_revoke', 'success', userId, `role:${role}`);
+    return { ok: true };
+  }
+
+  async updateAccountVisibility(
+    userId: string,
+    visibility: 'public' | 'private',
+  ): Promise<{ ok: true }> {
+    await this.userRepository.updateAuthorizationState(userId, { accountVisibility: visibility });
+    this.recordAuditEvent('session_revoke', 'success', userId, `visibility:${visibility}`);
+    return { ok: true };
+  }
+
   async verifyEmail(token: string): Promise<{ ok: true }> {
     const active = this.verificationTokens.get(token);
     if (!active || Date.now() > active.expiresAt) {
@@ -199,7 +232,12 @@ export class AuthService {
         expiresAt: Date.now() + 1000 * 60 * 60 * 24,
         userId: String((user as unknown as { _id: unknown })._id),
       });
-      this.recordAuditEvent('verify_email', 'success', String((user as unknown as { _id: unknown })._id), 'resend');
+      this.recordAuditEvent(
+        'verify_email',
+        'success',
+        String((user as unknown as { _id: unknown })._id),
+        'resend',
+      );
     }
 
     return { ok: true };
@@ -213,7 +251,11 @@ export class AuthService {
         expiresAt: Date.now() + 1000 * 60 * 15,
         userId: String((user as unknown as { _id: unknown })._id),
       });
-      this.recordAuditEvent('password_reset_request', 'success', String((user as unknown as { _id: unknown })._id));
+      this.recordAuditEvent(
+        'password_reset_request',
+        'success',
+        String((user as unknown as { _id: unknown })._id),
+      );
     }
 
     return { ok: true };

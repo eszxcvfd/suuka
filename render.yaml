@@ -1,0 +1,37 @@
+# Render blueprint for the Suuka monorepo.
+#
+# Configure these environment variables for `suuka-api` in Render:
+# - MONGODB_URI
+# - REDIS_URL
+# - CLOUDINARY_CLOUD_NAME
+# - CLOUDINARY_API_KEY
+# - CLOUDINARY_API_SECRET
+# - JWT_ACCESS_SECRET
+# - JWT_REFRESH_SECRET
+# - JWT_ACCESS_EXPIRES_IN
+# - JWT_REFRESH_EXPIRES_IN
+# - AUTH_BCRYPT_ROUNDS
+# - AUTH_REQUIRE_VERIFIED_EMAIL
+# - AUTH_INTERNAL_SCOPE_AUDIENCE (optional)
+# - AUTH_SERVICE_PRINCIPAL_SECRET (optional)
+#
+# Configure this environment variable for `suuka-web` when deploying this
+# blueprint, because `suuka-web` and `suuka-api` run as separate Render
+# services:
+# - VITE_API_BASE_URL=https://your-api-host.onrender.com/v1
+
+services:
+  - type: web
+    name: suuka-api
+    env: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter api build
+    startCommand: pnpm --filter api start:prod
+    healthCheckPath: /v1/health
+
+  - type: web
+    name: suuka-web
+    env: static
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter web build
+    staticPublishPath: apps/web/dist

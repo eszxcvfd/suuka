@@ -6,6 +6,7 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\"",
+    "start:prod": "node dist/main.js",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -17,6 +18,7 @@
     "@nestjs/mongoose": "^11.0.0",
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "@suuka/shared-types": "workspace:*",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.5.1",
     "ioredis": "^5.4.1",

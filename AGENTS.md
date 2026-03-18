@@ -169,11 +169,11 @@ Only registered when Agent Hive is detected:
 
 ### Roles
 
-- `fe` — Frontend (*.tsx,*.vue, *.css, src/components/)
-- `be` — Backend (*.py,*.go, src/api/, src/services/)
-- `mobile` — Mobile (*.swift,*.kt, android/, ios/)
-- `devops` — Infrastructure (Dockerfile, *.yaml, terraform/)
-- `qa` — Testing (*.test.*, *.spec.*, e2e/, tests/)
+- `fe` — Frontend (_.tsx,_.vue, \*.css, src/components/)
+- `be` — Backend (_.py,_.go, src/api/, src/services/)
+- `mobile` — Mobile (_.swift,_.kt, android/, ios/)
+- `devops` — Infrastructure (Dockerfile, \*.yaml, terraform/)
+- `qa` — Testing (_.test._, _.spec._, e2e/, tests/)
 
 ### Role-Based Filtering
 
@@ -311,6 +311,7 @@ claim()  # Work on something else
 - `imp` — Importance (low/normal/high)
 
 <!-- context-mode:start -->
+
 # context-mode — MANDATORY routing rules
 
 You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
@@ -409,11 +410,11 @@ Small files → full content. Large files → structural outline.
 section: "<start>-<end>" or "<heading text>"
 paths: read multiple files in one call.
 Output:
-<line_number> │ <content>                  ← full/section mode
-[<start>-<end>]  <symbol name>             ← outline mode
+<line_number> │ <content> ← full/section mode
+[<start>-<end>] <symbol name> ← outline mode
 
 tilth_files: Find files by glob pattern. Replaces find, ls, pwd, and the host Glob tool.
-Output: <path>  (~<token_count> tokens). Respects .gitignore.
+Output: <path> (~<token_count> tokens). Respects .gitignore.
 
 tilth_deps: Blast-radius check — what imports this file and what it imports.
 Use ONLY before renaming, removing, or changing an export's signature.

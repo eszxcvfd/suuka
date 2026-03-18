@@ -1,4 +1,5 @@
 export interface MediaAssetEntity {
+  accountVisibility: 'public' | 'private';
   id: string;
   ownerUserId: string;
   publicId: string;

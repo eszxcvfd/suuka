@@ -17,6 +17,12 @@ export class UserModel {
   @Prop({ required: true, default: 'active', enum: ['active', 'suspended', 'deleted'] })
   status!: 'active' | 'suspended' | 'deleted';
 
+  @Prop({ required: true, default: 'user', enum: ['admin', 'moderator', 'user'] })
+  role!: 'admin' | 'moderator' | 'user';
+
+  @Prop({ required: true, default: 'public', enum: ['public', 'private'] })
+  accountVisibility!: 'public' | 'private';
+
   @Prop({ required: true, default: false })
   emailVerified!: boolean;
 }

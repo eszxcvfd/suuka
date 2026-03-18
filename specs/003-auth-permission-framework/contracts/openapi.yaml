@@ -1,0 +1,513 @@
+openapi: 3.0.3
+info:
+  title: Authorization and Permission Framework API
+  version: 0.1.0
+  description: |
+    Planned authorization contract for feature 003.
+    Current repo surfaces exist for auth and media; profile, account-visibility, posts, comments,
+    and internal endpoints below are design targets and not all are implemented yet.
+    Implementation slices land incrementally: media visibility and ownership first, then staff RBAC,
+    then internal service scopes.
+    Moderator actions stay distinct from admin-only actions and all overrides must remain auditable.
+servers:
+  - url: /v1
+components:
+  securitySchemes:
+    userBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    internalBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    AccountId:
+      in: path
+      name: accountId
+      required: true
+      schema:
+        type: string
+    PostId:
+      in: path
+      name: postId
+      required: true
+      schema:
+        type: string
+    CommentId:
+      in: path
+      name: commentId
+      required: true
+      schema:
+        type: string
+    MediaId:
+      in: path
+      name: mediaId
+      required: true
+      schema:
+        type: string
+  schemas:
+    EnvelopeOk:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          properties:
+            ok:
+              type: boolean
+              enum: [true]
+      required: [success, data]
+    AuthorizationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: [FORBIDDEN, NOT_FOUND, MISSING_SCOPE]
+              description: |
+                FORBIDDEN: caller is authenticated but may not perform the requested mutation.
+                NOT_FOUND: resource existence is intentionally masked for read/detail access.
+                MISSING_SCOPE: internal caller lacks at least one required active scope.
+            message:
+              type: string
+              description: Non-revealing denial message.
+      required: [success, error]
+    VisibilitySetting:
+      type: object
+      properties:
+        visibility:
+          type: string
+          enum: [public, private]
+      required: [visibility]
+    ProfileView:
+      type: object
+      properties:
+        accountId:
+          type: string
+        displayName:
+          type: string
+        visibility:
+          type: string
+          enum: [public, private]
+      required: [accountId, displayName, visibility]
+    MediaAsset:
+      type: object
+      properties:
+        id:
+          type: string
+        ownerUserId:
+          type: string
+        secureUrl:
+          type: string
+        status:
+          type: string
+          enum: [uploaded, processing, ready, failed, deleted]
+      required: [id, ownerUserId, secureUrl, status]
+    PostMutationRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+      required: [body]
+    CommentMutationRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+      required: [body]
+    MediaMutationRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [uploaded, processing, ready, failed, deleted]
+      required: [status]
+    InternalModerationQueue:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              resourceType:
+                type: string
+                enum: [post, comment, media]
+              resourceId:
+                type: string
+              ownerUserId:
+                type: string
+            required: [resourceType, resourceId, ownerUserId]
+      required: [items]
+    InternalAccountVisibilityPatch:
+      type: object
+      properties:
+        visibility:
+          type: string
+          enum: [public, private]
+      required: [visibility]
+paths:
+  /auth/account-visibility:
+    patch:
+      x-surface-status: current-plus-authorization
+      x-implementation-slice: us2
+      summary: Update the current account visibility using the active authenticated principal
+      security:
+        - userBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisibilitySetting'
+      responses:
+        '200':
+          description: Visibility updated for the current authenticated account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks owner/admin permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /auth/roles/{userId}:
+    patch:
+      x-surface-status: current-plus-authorization
+      x-implementation-slice: us2
+      summary: Assign a baseline role through an admin-governed authorization route
+      security:
+        - userBearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [admin, moderator, user]
+              required: [role]
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks admin-only permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /profiles/{accountId}:
+    get:
+      x-surface-status: planned
+      x-implementation-slice: us1
+      summary: Read an account profile subject to visibility policy
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Profile allowed by visibility policy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/ProfileView'
+                required: [success, data]
+        '403':
+          description: Private profile denied without revealing sensitive policy details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /accounts/{accountId}/visibility:
+    patch:
+      x-surface-status: planned
+      x-implementation-slice: us2
+      summary: Update account visibility as owner or admin override
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisibilitySetting'
+      responses:
+        '200':
+          description: Visibility updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks owner/admin permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /media:
+    get:
+      x-surface-status: current-plus-authorization
+      x-implementation-slice: us1
+      summary: List media visible to the caller after ownership and visibility filtering
+      security:
+        - userBearerAuth: []
+      responses:
+        '200':
+          description: Visible media only
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MediaAsset'
+                required: [success, data]
+
+  /media/{mediaId}:
+    patch:
+      x-surface-status: planned
+      x-implementation-slice: us1
+      summary: Update media when caller is owner, moderator, or admin per policy matrix
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MediaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaMutationRequest'
+      responses:
+        '200':
+          description: Media updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks ownership or staff permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+    delete:
+      x-surface-status: planned
+      x-implementation-slice: us1
+      summary: Delete media when caller is owner, moderator, or admin per policy matrix
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MediaId'
+      responses:
+        '200':
+          description: Media deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks ownership or staff permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /posts/{postId}:
+    patch:
+      x-surface-status: planned
+      x-implementation-slice: us1
+      summary: Update a post when authorization policy allows it
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostMutationRequest'
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks ownership or policy permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+    delete:
+      x-surface-status: planned
+      x-implementation-slice: us1
+      summary: Delete a post when authorization policy allows it
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: Post deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks ownership or policy permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /comments/{commentId}:
+    patch:
+      x-surface-status: planned
+      x-implementation-slice: us1
+      summary: Update a comment when authorization policy allows it
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentMutationRequest'
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks ownership or policy permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+    delete:
+      x-surface-status: planned
+      x-implementation-slice: us1
+      summary: Delete a comment when authorization policy allows it
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommentId'
+      responses:
+        '200':
+          description: Comment deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Caller lacks ownership or policy permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /internal/moderation/review-queue:
+    get:
+      x-surface-status: planned
+      x-implementation-slice: us3
+      summary: Read moderation queue with required internal scope `moderation:read`
+      security:
+        - internalBearerAuth: []
+      responses:
+        '200':
+          description: Internal caller has required scope
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/InternalModerationQueue'
+                required: [success, data]
+        '403':
+          description: Missing or revoked internal scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'
+
+  /internal/accounts/{accountId}/visibility:
+    patch:
+      x-surface-status: planned
+      x-implementation-slice: us3
+      summary: Update account visibility through an internal workflow with required scope `accounts:write`
+      security:
+        - internalBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalAccountVisibilityPatch'
+      responses:
+        '200':
+          description: Visibility updated by authorized internal caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '403':
+          description: Missing or revoked internal scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationError'

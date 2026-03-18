@@ -1,3 +1,5 @@
+import { normalizeApiBaseUrl } from './api-base-url';
+
 interface ApiSuccessEnvelope<TData> {
   success: true;
   data: TData;
@@ -6,15 +8,30 @@ interface ApiSuccessEnvelope<TData> {
 interface ApiErrorEnvelope {
   success: false;
   error?: {
+    code?: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND';
     message?: string;
     status?: number;
   };
 }
 
+export type AuthorizationErrorCode = 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND';
+
+export class AuthorizationError extends Error {
+  constructor(
+    message: string,
+    readonly code: AuthorizationErrorCode,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
+
 interface SessionUser {
+  accountVisibility?: 'public' | 'private';
   id?: string;
   email: string;
   displayName: string;
+  role?: 'admin' | 'moderator' | 'user';
   status?: 'active' | 'suspended' | 'deleted';
 }
 
@@ -29,6 +46,15 @@ export interface SessionInfo {
   deviceLabel: string;
   isCurrent: boolean;
   lastActivityAt: string;
+}
+
+export interface VisibleMediaItem {
+  id: string;
+  ownerUserId: string;
+  publicId: string;
+  secureUrl: string;
+  accountVisibility?: 'public' | 'private';
+  status: 'uploaded' | 'processing' | 'ready' | 'failed' | 'deleted';
 }
 
 interface SignInPayload {
@@ -57,10 +83,16 @@ interface PasswordResetConfirmPayload {
 
 type SignUpResult = SessionUser | AuthSession;
 
-const DEFAULT_API_BASE_URL = '/v1';
+const DEFAULT_API_BASE_URL = normalizeApiBaseUrl();
 
 export class AuthApi {
+  private accessToken: string | null = null;
+
   constructor(private readonly baseUrl = DEFAULT_API_BASE_URL) {}
+
+  setAccessToken(token: string | null): void {
+    this.accessToken = token;
+  }
 
   async signIn(payload: SignInPayload): Promise<AuthSession> {
     return this.request<AuthSession>('/auth/sign-in', {
@@ -123,10 +155,24 @@ export class AuthApi {
     });
   }
 
+  async listVisibleMedia(): Promise<VisibleMediaItem[]> {
+    return this.request<VisibleMediaItem[]>('/media', {
+      method: 'GET',
+    });
+  }
+
+  async uploadMedia(filename: string): Promise<VisibleMediaItem> {
+    return this.request<VisibleMediaItem>('/media', {
+      method: 'POST',
+      body: JSON.stringify({ filename }),
+    });
+  }
+
   private async request<TResponse>(path: string, init: RequestInit): Promise<TResponse> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...init,
       headers: {
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
         'Content-Type': 'application/json',
         ...(init.headers ?? {}),
       },
@@ -140,6 +186,13 @@ export class AuthApi {
     }
 
     if (!response.ok) {
+      if (payload && 'error' in payload && payload.error?.code && payload.error?.message) {
+        throw new AuthorizationError(
+          payload.error.message,
+          payload.error.code,
+          payload.error.status,
+        );
+      }
       if (payload && 'error' in payload && payload.error?.message) {
         throw new Error(payload.error.message);
       }
@@ -152,4 +205,11 @@ export class AuthApi {
 
     return payload.data;
   }
+}
+
+export function isAuthorizationDeniedError(error: unknown): error is AuthorizationError {
+  return (
+    error instanceof AuthorizationError &&
+    (error.code === 'FORBIDDEN' || error.code === 'NOT_FOUND' || error.code === 'MISSING_SCOPE')
+  );
 }

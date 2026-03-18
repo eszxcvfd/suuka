@@ -4,9 +4,11 @@ import { Model } from 'mongoose';
 import { UserModel } from './user.schema';
 
 interface CreateUserInput {
+  accountVisibility?: 'public' | 'private';
   displayName: string;
   email: string;
   passwordHash: string;
+  role?: 'admin' | 'moderator' | 'user';
 }
 
 @Injectable()
@@ -18,6 +20,8 @@ export class UserRepository {
       displayName: input.displayName,
       email: input.email.toLowerCase(),
       passwordHash: input.passwordHash,
+      accountVisibility: input.accountVisibility ?? 'public',
+      role: input.role ?? 'user',
       status: 'active',
       emailVerified: false,
     });
@@ -37,5 +41,12 @@ export class UserRepository {
 
   async updatePassword(id: string, passwordHash: string): Promise<void> {
     await this.userModel.updateOne({ _id: id }, { passwordHash }).exec();
+  }
+
+  async updateAuthorizationState(
+    id: string,
+    input: { accountVisibility?: 'public' | 'private'; role?: 'admin' | 'moderator' | 'user' },
+  ): Promise<void> {
+    await this.userModel.updateOne({ _id: id }, input).exec();
   }
 }

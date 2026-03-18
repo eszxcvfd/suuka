@@ -95,6 +95,13 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+### Quality Requirements *(mandatory)*
+
+- **QR-001 Code Quality**: Changes MUST meet agreed linting, formatting, and static-analysis checks.
+- **QR-002 Testing Standards**: Behavior changes MUST include automated tests that fail before implementation and pass after implementation.
+- **QR-003 UX Consistency**: User-facing behavior MUST define consistent interaction states (loading, empty, error, success) and accessibility expectations.
+- **QR-004 Performance Requirements**: Critical user journeys MUST include measurable performance targets (for example latency, responsiveness, or throughput).
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]

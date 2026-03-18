@@ -103,7 +103,7 @@ button {
   max-width: 1200px;
   margin: 0 auto;
   min-height: 72px;
-  padding: 0 1.25rem;
+  padding: 0 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -272,15 +272,17 @@ button {
 .shell-main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3rem;
+  padding: 2rem 1.5rem 3rem;
 }
 
 .auth-shell {
+  max-width: 1200px;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 480px);
   align-items: start;
   gap: 2rem;
-  padding-top: 2rem;
+  padding: 2rem 1.5rem 0;
 }
 
 .auth-hero {
@@ -750,9 +752,10 @@ button {
 
 @media (max-width: 640px) {
   .topbar__inner,
-  .shell-main {
-    padding-left: 1rem;
-    padding-right: 1rem;
+  .shell-main,
+  .auth-shell {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
   }
 
   .topbar__inner {

@@ -30,6 +30,7 @@ describe('Clean Architecture boundaries', () => {
     const forbiddenImportsInDomain = ['@nestjs/common', 'mongoose', 'ioredis', 'cloudinary'];
     const domainDirectories = [
       path.resolve(__dirname, '../../src/modules/auth/domain'),
+      path.resolve(__dirname, '../../src/modules/authorization/domain'),
       path.resolve(__dirname, '../../src/modules/media/domain'),
       path.resolve(__dirname, '../../src/modules/notifications/domain'),
     ];
@@ -39,9 +40,10 @@ describe('Clean Architecture boundaries', () => {
     for (const filePath of domainFiles) {
       const content = fs.readFileSync(filePath, 'utf8');
       for (const moduleName of forbiddenImportsInDomain) {
-        expect(content.includes(moduleName), `${path.basename(filePath)} imports forbidden module ${moduleName}`).toBe(
-          false,
-        );
+        expect(
+          content.includes(moduleName),
+          `${path.basename(filePath)} imports forbidden module ${moduleName}`,
+        ).toBe(false);
       }
     }
   });

@@ -1,4 +1,6 @@
-const DEFAULT_API_BASE_URL = 'http://localhost:3000/v1';
+import { normalizeApiBaseUrl } from './api-base-url';
+
+const DEFAULT_API_BASE_URL = normalizeApiBaseUrl();
 
 interface ApiSuccessEnvelope<TData> {
   success: true;
@@ -8,9 +10,20 @@ interface ApiSuccessEnvelope<TData> {
 interface ApiErrorEnvelope {
   success: false;
   error?: {
+    code?: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND';
     message?: string;
     status?: number;
   };
+}
+
+export class AuthorizationError extends Error {
+  constructor(
+    message: string,
+    readonly code: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND',
+    readonly status?: number,
+  ) {
+    super(message);
+  }
 }
 
 export class ApiClient {
@@ -59,6 +72,13 @@ export class ApiClient {
     }
 
     if (!response.ok) {
+      if (payload && 'error' in payload && payload.error?.code && payload.error?.message) {
+        throw new AuthorizationError(
+          payload.error.message,
+          payload.error.code,
+          payload.error.status,
+        );
+      }
       if (payload && 'error' in payload && payload.error?.message) {
         throw new Error(payload.error.message);
       }
@@ -71,4 +91,8 @@ export class ApiClient {
 
     return payload.data;
   }
+}
+
+export function isAuthorizationDeniedError(error: unknown): error is AuthorizationError {
+  return error instanceof AuthorizationError;
 }

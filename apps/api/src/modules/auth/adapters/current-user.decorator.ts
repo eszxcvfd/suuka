@@ -1,11 +1,9 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
+import type { AuthorizationPrincipal } from '@suuka/shared-types';
 
-interface CurrentUserPayload {
-  email: string;
-  sub: string;
-}
-
-export const CurrentUser = createParamDecorator((_: unknown, context: ExecutionContext): CurrentUserPayload | null => {
-  const request = context.switchToHttp().getRequest<{ authUser?: CurrentUserPayload }>();
-  return request.authUser ?? null;
-});
+export const CurrentUser = createParamDecorator(
+  (_: unknown, context: ExecutionContext): AuthorizationPrincipal | null => {
+    const request = context.switchToHttp().getRequest<{ authUser?: AuthorizationPrincipal }>();
+    return request.authUser ?? null;
+  },
+);

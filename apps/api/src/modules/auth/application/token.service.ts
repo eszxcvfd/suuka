@@ -5,6 +5,12 @@ import { loadAuthConfig } from '../../../config/auth.config';
 
 interface AccessPayload {
   email: string;
+  accountVisibility?: 'public' | 'private';
+  principalType?: 'internal_service' | 'user';
+  role?: 'admin' | 'moderator' | 'user';
+  scopes?: string[];
+  serviceName?: string;
+  sessionId?: string;
   sub: string;
 }
 

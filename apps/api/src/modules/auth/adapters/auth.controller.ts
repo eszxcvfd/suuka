@@ -1,7 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from '../application/auth.service';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthorizationGuard } from '../../authorization/adapters/authorization.guard';
+import { Permissions } from '../../authorization/adapters/permissions.decorator';
+import type { AuthorizationPrincipal } from '@suuka/shared-types';
 
 @Controller('auth')
 export class AuthController {
@@ -61,7 +64,30 @@ export class AuthController {
 
   @Delete('sessions')
   @UseGuards(JwtAuthGuard)
-  revokeOtherSessions(@CurrentUser() user: { sub: string }, @Body() body: { currentSessionId?: string }) {
-    return this.authService.revokeOtherSessions(user.sub, body.currentSessionId);
+  revokeOtherSessions(
+    @CurrentUser() user: AuthorizationPrincipal,
+    @Body() body: { currentSessionId?: string },
+  ) {
+    return this.authService.revokeOtherSessions(user.userId ?? user.id, body.currentSessionId);
+  }
+
+  @Patch('account-visibility')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions('account:visibility:update')
+  updateAccountVisibility(
+    @CurrentUser() user: AuthorizationPrincipal,
+    @Body() body: { visibility: 'public' | 'private' },
+  ) {
+    return this.authService.updateAccountVisibility(user.userId ?? user.id, body.visibility);
+  }
+
+  @Patch('roles/:userId')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions('role:assign')
+  assignRole(
+    @Param('userId') userId: string,
+    @Body() body: { role: 'admin' | 'moderator' | 'user' },
+  ) {
+    return this.authService.assignRole(userId, body.role);
   }
 }

@@ -7,12 +7,16 @@ const DEMO_MEDIA = [
 ];
 
 export function MediaListScreen() {
+  const visibleItems = DEMO_MEDIA.filter(Boolean);
+
   return (
     <View style={{ flex: 1, gap: 12, padding: 20 }}>
       <Text style={{ fontSize: 24, fontWeight: '600' }}>My media</Text>
+      <Text style={{ color: '#64748b' }}>Protected media is unavailable for this account.</Text>
       <ScrollView>
         <View style={{ gap: 10 }}>
-          {DEMO_MEDIA.map((item) => (
+          {!visibleItems.length ? <Text>No visible media yet.</Text> : null}
+          {visibleItems.map((item) => (
             <MediaCard key={item.id} name={item.name} secureUrl={item.secureUrl} />
           ))}
         </View>

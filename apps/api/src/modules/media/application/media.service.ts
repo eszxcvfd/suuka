@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
+import type { AuthorizationPrincipal } from '@suuka/shared-types';
 
 interface UploadedMedia {
+  accountVisibility: 'public' | 'private';
   id: string;
   ownerUserId: string;
   publicId: string;
@@ -14,14 +16,25 @@ interface UploadedMedia {
 export class MediaService {
   private readonly assets: UploadedMedia[] = [];
 
-  list(ownerUserId: string): UploadedMedia[] {
-    return this.assets.filter((asset) => asset.ownerUserId === ownerUserId);
+  list(principal: AuthorizationPrincipal): UploadedMedia[] {
+    return this.assets.filter((asset) => {
+      if (principal.role === 'admin' || principal.role === 'moderator') {
+        return true;
+      }
+
+      if (asset.ownerUserId === principal.userId) {
+        return true;
+      }
+
+      return asset.accountVisibility === 'public';
+    });
   }
 
-  upload(ownerUserId: string, filename: string): UploadedMedia {
+  upload(principal: AuthorizationPrincipal, filename: string): UploadedMedia {
     const uploaded: UploadedMedia = {
+      accountVisibility: principal.accountVisibility ?? 'public',
       id: crypto.randomUUID(),
-      ownerUserId,
+      ownerUserId: principal.userId ?? principal.id,
       publicId: `media/${Date.now()}-${filename}`,
       secureUrl: `https://res.cloudinary.com/demo/${filename}`,
       resourceType: 'image',
