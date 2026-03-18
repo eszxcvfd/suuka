@@ -20,7 +20,21 @@
       "fetchedAt": "2026-03-18T10:03:36.688Z",
       "expiresAt": "2026-03-19T10:03:36.688Z",
       "size": 7799
+    },
+    "vite_dev_guide_env-and-mode.md": {
+      "url": "https://vite.dev/guide/env-and-mode",
+      "title": "Env Variables and Modes | Vite",
+      "fetchedAt": "2026-03-18T11:36:02.845Z",
+      "expiresAt": "2026-03-19T11:36:02.845Z",
+      "size": 10329
+    },
+    "vercel_com_docs_environment-variables_managing-environment-va.md": {
+      "url": "https://vercel.com/docs/environment-variables/managing-environment-variables",
+      "title": "Managing environment variables",
+      "fetchedAt": "2026-03-18T11:36:04.682Z",
+      "expiresAt": "2026-03-19T11:36:04.682Z",
+      "size": 15187
     }
   },
-  "lastUpdated": "2026-03-18T10:03:36.690Z"
+  "lastUpdated": "2026-03-18T11:36:04.724Z"
 }
