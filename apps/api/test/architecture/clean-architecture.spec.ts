@@ -47,4 +47,26 @@ describe('Clean Architecture boundaries', () => {
       }
     }
   });
+
+  it('keeps the profiles module free of direct infrastructure clients in application/adapters', () => {
+    const forbiddenDirectImports = ['mongoose', 'ioredis', 'cloudinary'];
+    const profileLayerDirectories = [
+      path.resolve(__dirname, '../../src/modules/profiles/application'),
+      path.resolve(__dirname, '../../src/modules/profiles/adapters'),
+    ];
+
+    const profileLayerFiles = profileLayerDirectories.flatMap((directory) =>
+      collectTypeScriptFiles(directory),
+    );
+
+    for (const filePath of profileLayerFiles) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const moduleName of forbiddenDirectImports) {
+        expect(
+          content.includes(moduleName),
+          `${path.basename(filePath)} imports forbidden module ${moduleName}`,
+        ).toBe(false);
+      }
+    }
+  });
 });

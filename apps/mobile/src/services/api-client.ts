@@ -10,7 +10,7 @@ interface ApiSuccessEnvelope<TData> {
 interface ApiErrorEnvelope {
   success: false;
   error?: {
-    code?: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND';
+    code?: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'USERNAME_TAKEN';
     message?: string;
     status?: number;
   };
@@ -19,7 +19,12 @@ interface ApiErrorEnvelope {
 export class AuthorizationError extends Error {
   constructor(
     message: string,
-    readonly code: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND',
+    readonly code:
+      | 'FORBIDDEN'
+      | 'MISSING_SCOPE'
+      | 'NOT_FOUND'
+      | 'VALIDATION_ERROR'
+      | 'USERNAME_TAKEN',
     readonly status?: number,
   ) {
     super(message);
@@ -27,12 +32,12 @@ export class AuthorizationError extends Error {
 }
 
 export class ApiClient {
-  private accessToken: string | null = null;
+  private static sharedAccessToken: string | null = null;
 
   constructor(private readonly baseUrl = DEFAULT_API_BASE_URL) {}
 
   setAccessToken(token: string | null): void {
-    this.accessToken = token;
+    ApiClient.sharedAccessToken = token;
   }
 
   async post<TResponse>(path: string, body: unknown): Promise<TResponse> {
@@ -48,6 +53,13 @@ export class ApiClient {
     });
   }
 
+  async patch<TResponse>(path: string, body: unknown): Promise<TResponse> {
+    return this.request<TResponse>(path, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
   async delete<TResponse>(path: string): Promise<TResponse> {
     return this.request<TResponse>(path, {
       method: 'DELETE',
@@ -58,7 +70,9 @@ export class ApiClient {
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...init,
       headers: {
-        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+        ...(ApiClient.sharedAccessToken
+          ? { Authorization: `Bearer ${ApiClient.sharedAccessToken}` }
+          : {}),
         'Content-Type': 'application/json',
         ...(init.headers ?? {}),
       },

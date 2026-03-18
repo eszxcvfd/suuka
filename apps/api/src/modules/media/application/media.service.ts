@@ -1,22 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
 import type { AuthorizationPrincipal } from '@suuka/shared-types';
-
-interface UploadedMedia {
-  accountVisibility: 'public' | 'private';
-  id: string;
-  ownerUserId: string;
-  publicId: string;
-  secureUrl: string;
-  resourceType: 'image' | 'video' | 'raw';
-  status: 'uploaded' | 'processing' | 'ready' | 'failed' | 'deleted';
-}
+import type { MediaAssetEntity } from '../domain/media-asset.entity';
 
 @Injectable()
 export class MediaService {
-  private readonly assets: UploadedMedia[] = [];
+  private readonly assets: MediaAssetEntity[] = [];
 
-  list(principal: AuthorizationPrincipal): UploadedMedia[] {
+  list(principal: AuthorizationPrincipal): MediaAssetEntity[] {
     return this.assets.filter((asset) => {
       if (principal.role === 'admin' || principal.role === 'moderator') {
         return true;
@@ -30,15 +21,36 @@ export class MediaService {
     });
   }
 
-  upload(principal: AuthorizationPrincipal, filename: string): UploadedMedia {
-    const uploaded: UploadedMedia = {
+  findOwnedAsset(ownerUserId: string, mediaId: string): MediaAssetEntity | null {
+    return (
+      this.assets.find(
+        (asset) =>
+          asset.id === mediaId && asset.ownerUserId === ownerUserId && asset.status !== 'deleted',
+      ) ?? null
+    );
+  }
+
+  resolveAvatarAsset(ownerUserId: string, mediaId: string): MediaAssetEntity | null {
+    return (
+      this.assets.find(
+        (asset) =>
+          asset.id === mediaId &&
+          asset.ownerUserId === ownerUserId &&
+          asset.resourceType === 'image' &&
+          asset.status === 'ready',
+      ) ?? null
+    );
+  }
+
+  upload(principal: AuthorizationPrincipal, filename: string): MediaAssetEntity {
+    const uploaded: MediaAssetEntity = {
       accountVisibility: principal.accountVisibility ?? 'public',
       id: crypto.randomUUID(),
       ownerUserId: principal.userId ?? principal.id,
       publicId: `media/${Date.now()}-${filename}`,
       secureUrl: `https://res.cloudinary.com/demo/${filename}`,
       resourceType: 'image',
-      status: 'uploaded',
+      status: 'ready',
     };
     this.assets.unshift(uploaded);
     return uploaded;

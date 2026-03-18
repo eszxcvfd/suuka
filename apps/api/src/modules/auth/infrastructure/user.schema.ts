@@ -11,6 +11,21 @@ export class UserModel {
   @Prop({ required: true, trim: true })
   displayName!: string;
 
+  @Prop({ required: false, trim: true })
+  username?: string;
+
+  @Prop({ required: false, lowercase: true, trim: true, unique: true, sparse: true })
+  usernameCanonical?: string;
+
+  @Prop({ required: true, default: '' })
+  bio!: string;
+
+  @Prop({ type: String, required: false, default: null })
+  avatarMediaId?: string | null;
+
+  @Prop({ type: [{ id: String, label: String, url: String }], default: [] })
+  externalLinks!: Array<{ id: string; label: string; url: string }>;
+
   @Prop({ required: true })
   passwordHash!: string;
 
@@ -30,3 +45,4 @@ export class UserModel {
 export const UserSchema = SchemaFactory.createForClass(UserModel);
 
 UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ usernameCanonical: 1 }, { unique: true, sparse: true });

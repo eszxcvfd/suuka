@@ -8,13 +8,18 @@ interface ApiSuccessEnvelope<TData> {
 interface ApiErrorEnvelope {
   success: false;
   error?: {
-    code?: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND';
+    code?: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'USERNAME_TAKEN';
     message?: string;
     status?: number;
   };
 }
 
-export type AuthorizationErrorCode = 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND';
+export type AuthorizationErrorCode =
+  | 'FORBIDDEN'
+  | 'MISSING_SCOPE'
+  | 'NOT_FOUND'
+  | 'VALIDATION_ERROR'
+  | 'USERNAME_TAKEN';
 
 export class AuthorizationError extends Error {
   constructor(
@@ -27,12 +32,41 @@ export class AuthorizationError extends Error {
 }
 
 interface SessionUser {
+  accountId?: string;
   accountVisibility?: 'public' | 'private';
+  avatarMediaId?: string | null;
+  avatarUrl?: string | null;
+  bio?: string;
+  externalLinks?: Array<{ id: string; label: string; url: string }>;
   id?: string;
   email: string;
   displayName: string;
   role?: 'admin' | 'moderator' | 'user';
   status?: 'active' | 'suspended' | 'deleted';
+  username?: string;
+}
+
+export interface ProfileDetails {
+  accountId: string;
+  accountVisibility: 'public' | 'private';
+  avatarMediaId?: string | null;
+  avatarUrl: string | null;
+  bio: string;
+  displayName: string;
+  externalLinks: Array<{ id: string; label: string; url: string }>;
+  username?: string;
+}
+
+export interface UpdateProfilePayload {
+  accountVisibility?: 'public' | 'private';
+  bio?: string;
+  displayName?: string;
+  externalLinks?: Array<{ id: string; label: string; url: string }>;
+  username?: string;
+}
+
+export interface UpdateAvatarPayload {
+  mediaId: string | null;
 }
 
 interface AuthSession {
@@ -152,6 +186,32 @@ export class AuthApi {
     return this.request<{ ok: true }>('/auth/sessions', {
       method: 'DELETE',
       body: JSON.stringify({ currentSessionId }),
+    });
+  }
+
+  async getProfile(): Promise<ProfileDetails> {
+    return this.request<ProfileDetails>('/profiles/me', {
+      method: 'GET',
+    });
+  }
+
+  async getProfileByAccountId(accountId: string): Promise<ProfileDetails> {
+    return this.request<ProfileDetails>(`/profiles/${accountId}`, {
+      method: 'GET',
+    });
+  }
+
+  async updateProfile(payload: UpdateProfilePayload): Promise<ProfileDetails> {
+    return this.request<ProfileDetails>('/profiles/me', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateAvatar(payload: UpdateAvatarPayload): Promise<ProfileDetails> {
+    return this.request<ProfileDetails>('/profiles/me/avatar', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
     });
   }
 

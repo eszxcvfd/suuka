@@ -2,7 +2,7 @@
   "name": "@suuka/validation",
   "private": true,
   "version": "0.1.0",
-  "main": "src/index.ts",
+  "main": "src/index.cjs",
   "types": "src/index.ts",
   "dependencies": {
     "zod": "^3.23.8"

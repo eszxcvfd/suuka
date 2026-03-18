@@ -8,6 +8,7 @@ import { HealthModule } from './modules/health/health.module';
 import { MediaModule } from './modules/media/media.module';
 import { CloudinaryModule } from './modules/media/infrastructure/cloudinary/cloudinary.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ProfilesModule } from './modules/profiles/profiles.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AuthorizationModule,
     MediaModule,
     NotificationsModule,
+    ProfilesModule,
   ],
 })
 export class AppModule {}

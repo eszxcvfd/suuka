@@ -13,10 +13,25 @@ const ROLE_PERMISSION_MATRIX: Record<
     'media:delete',
     'media:list',
     'media:update',
+    'profile:read',
+    'profile:update',
     'role:assign',
   ],
-  moderator: ['internal:moderation:read', 'media:delete', 'media:list', 'media:update'],
-  user: ['account:visibility:update', 'media:list', 'media:update'],
+  moderator: [
+    'internal:moderation:read',
+    'media:delete',
+    'media:list',
+    'media:update',
+    'profile:read',
+    'profile:update',
+  ],
+  user: [
+    'account:visibility:update',
+    'media:list',
+    'media:update',
+    'profile:read',
+    'profile:update',
+  ],
 };
 
 @Injectable()

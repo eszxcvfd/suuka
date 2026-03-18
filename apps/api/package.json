@@ -19,6 +19,7 @@
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@suuka/shared-types": "workspace:*",
+    "@suuka/validation": "workspace:*",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.5.1",
     "ioredis": "^5.4.1",

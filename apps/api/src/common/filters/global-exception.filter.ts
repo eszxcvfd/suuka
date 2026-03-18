@@ -7,12 +7,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status =
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const code = this.resolveCode(exception, status);
     const message = this.resolveMessage(exception, status);
 
     response.status(status).json({
       success: false,
       error: {
+        code,
         message,
         status,
       },
@@ -45,5 +48,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     return 'Request failed';
+  }
+
+  private resolveCode(exception: unknown, status: number): string {
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      return 'INTERNAL_SERVER_ERROR';
+    }
+
+    if (exception instanceof HttpException) {
+      const payload = exception.getResponse();
+      if (payload && typeof payload === 'object') {
+        const maybeCode = (payload as { code?: string }).code;
+        if (typeof maybeCode === 'string' && maybeCode.length > 0) {
+          return maybeCode;
+        }
+      }
+    }
+
+    return 'REQUEST_FAILED';
   }
 }

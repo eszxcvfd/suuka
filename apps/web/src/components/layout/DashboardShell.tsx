@@ -45,6 +45,13 @@ export function DashboardShell({ auth, children }: DashboardShellProps) {
               </span>
               <span>{displayName}</span>
             </div>
+            <button
+              className="button button--outline"
+              type="button"
+              onClick={() => auth.setMode('profile')}
+            >
+              Profile
+            </button>
             <button className="button button--outline" type="button" onClick={auth.signOut}>
               Sign out
             </button>

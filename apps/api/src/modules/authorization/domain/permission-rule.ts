@@ -12,6 +12,8 @@ export type AuthorizationAction =
   | 'media:delete'
   | 'media:list'
   | 'media:update'
+  | 'profile:read'
+  | 'profile:update'
   | 'role:assign';
 
 export interface PermissionRule {
@@ -72,6 +74,21 @@ export const PERMISSION_RULES: Record<AuthorizationAction, PermissionRule> = {
   },
   'media:update': {
     action: 'media:update',
+    allowedRoles: ['admin', 'moderator', 'user'],
+    allowsAdminOverride: true,
+    allowsModeratorOverride: true,
+    requiresOwnership: true,
+  },
+  'profile:read': {
+    action: 'profile:read',
+    allowedRoles: ['admin', 'moderator', 'user'],
+    allowedVisibilities: ['public', 'private'],
+    allowsAdminOverride: true,
+    allowsModeratorOverride: true,
+    requiresOwnership: false,
+  },
+  'profile:update': {
+    action: 'profile:update',
     allowedRoles: ['admin', 'moderator', 'user'],
     allowsAdminOverride: true,
     allowsModeratorOverride: true,

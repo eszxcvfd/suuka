@@ -25,10 +25,29 @@ interface PasswordResetConfirmPayload {
 }
 
 interface SessionUser {
+  accountId?: string;
+  accountVisibility?: 'public' | 'private';
+  avatarMediaId?: string | null;
+  avatarUrl?: string | null;
+  bio?: string;
   id?: string;
   email: string;
   displayName?: string;
+  externalLinks?: Array<{ id: string; label: string; url: string }>;
   status?: 'active' | 'suspended' | 'deleted';
+  username?: string;
+}
+
+interface UpdateProfilePayload {
+  accountVisibility?: 'public' | 'private';
+  bio?: string;
+  displayName?: string;
+  externalLinks?: Array<{ id: string; label: string; url: string }>;
+  username?: string;
+}
+
+interface UpdateAvatarPayload {
+  mediaId: string | null;
 }
 
 interface SignInResponse {
@@ -83,6 +102,26 @@ export class AuthService {
 
   async listSessions(): Promise<SessionInfo[]> {
     return this.apiClient.get<SessionInfo[]>('/auth/sessions');
+  }
+
+  async getProfile(): Promise<SessionUser> {
+    return this.apiClient.get<SessionUser>('/profiles/me');
+  }
+
+  async getProfileByAccountId(accountId: string): Promise<SessionUser> {
+    try {
+      return await this.apiClient.get<SessionUser>(`/profiles/${accountId}`);
+    } catch (error) {
+      throw this.normalizeAuthorizationError(error);
+    }
+  }
+
+  async updateProfile(payload: UpdateProfilePayload): Promise<SessionUser> {
+    return this.apiClient.patch<SessionUser>('/profiles/me', payload);
+  }
+
+  async updateAvatar(payload: UpdateAvatarPayload): Promise<SessionUser> {
+    return this.apiClient.patch<SessionUser>('/profiles/me/avatar', payload);
   }
 
   async revokeSession(sessionId: string): Promise<{ ok: true }> {

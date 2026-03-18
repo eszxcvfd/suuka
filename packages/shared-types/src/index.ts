@@ -4,10 +4,32 @@ export type AuthorizationRole = 'admin' | 'moderator' | 'user';
 export type AccountVisibility = 'public' | 'private';
 export type AuthorizationPrincipalType = 'user' | 'internal_service';
 
+export interface ProfileExternalLink {
+  id: string;
+  label: string;
+  url: string;
+}
+
+export interface ProfileView {
+  accountId: string;
+  accountVisibility: AccountVisibility;
+  avatarUrl: string | null;
+  bio: string;
+  displayName: string;
+  externalLinks: ProfileExternalLink[];
+  username?: string;
+}
+
 export interface UserProfile {
   id: string;
+  accountId?: string;
   email: string;
   displayName: string;
+  username?: string;
+  bio?: string;
+  avatarMediaId?: string | null;
+  avatarUrl?: string | null;
+  externalLinks?: ProfileExternalLink[];
   accountVisibility?: AccountVisibility;
   role?: AuthorizationRole;
   status: UserStatus;

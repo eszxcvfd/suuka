@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MediaPage } from './app/pages/MediaPage';
+import { ProfilePage } from './app/pages/ProfilePage';
 import { ForgotPasswordPage } from './app/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './app/pages/ResetPasswordPage';
 import { SessionsPage } from './app/pages/SessionsPage';
@@ -16,6 +17,10 @@ function App() {
   if (auth.isAuthenticated) {
     if (auth.mode === 'sessions') {
       return <SessionsPage auth={auth} />;
+    }
+
+    if (auth.mode === 'profile') {
+      return <ProfilePage auth={auth} />;
     }
 
     return <MediaPage auth={auth} />;

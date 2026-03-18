@@ -1,0 +1,229 @@
+openapi: 3.0.3
+info:
+  title: User Profile Service API
+  version: 0.1.0
+  description: |
+    Planned profile management contract for feature 004.
+    This contract extends the current auth/account visibility and identity surfaces with
+    public profile reads and owner-managed profile updates.
+servers:
+  - url: /v1
+components:
+  securitySchemes:
+    userBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    AccountId:
+      in: path
+      name: accountId
+      required: true
+      schema:
+        type: string
+  schemas:
+    EnvelopeOk:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+      required: [success, data]
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: [VALIDATION_ERROR, USERNAME_TAKEN, NOT_FOUND, FORBIDDEN]
+            message:
+              type: string
+          required: [code, message]
+      required: [success, error]
+    ProfileExternalLink:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        url:
+          type: string
+      required: [id, label, url]
+    ProfileView:
+      type: object
+      properties:
+        accountId:
+          type: string
+        displayName:
+          type: string
+        username:
+          type: string
+        bio:
+          type: string
+          maxLength: 160
+        avatarUrl:
+          type: string
+          nullable: true
+        accountVisibility:
+          type: string
+          enum: [public, private]
+        externalLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileExternalLink'
+      required: [accountId, displayName, bio, accountVisibility, externalLinks]
+    UpdateProfileRequest:
+      type: object
+      properties:
+        accountVisibility:
+          type: string
+          enum: [public, private]
+        displayName:
+          type: string
+          minLength: 2
+          maxLength: 60
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+        bio:
+          type: string
+          maxLength: 160
+        externalLinks:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/ProfileExternalLink'
+      additionalProperties: false
+    UpdateAvatarRequest:
+      type: object
+      properties:
+        mediaId:
+          type: string
+          nullable: true
+      required: [mediaId]
+paths:
+  /profiles/{accountId}:
+    get:
+      x-surface-status: implemented
+      x-implementation-slice: us3
+      summary: Read a user profile subject to profile visibility rules
+      security:
+        - userBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Profile is visible to the requesting principal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/ProfileView'
+                required: [success, data]
+        '404':
+          description: Profile does not exist or is intentionally hidden from the requester
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /profiles/me:
+    get:
+      x-surface-status: implemented
+      x-implementation-slice: us1
+      summary: Read the current authenticated user's editable profile
+      security:
+        - userBearerAuth: []
+      responses:
+        '200':
+          description: Full editable profile returned for the current owner
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/ProfileView'
+                required: [success, data]
+
+    patch:
+      x-surface-status: implemented
+      x-implementation-slice: us1
+      summary: Update the current authenticated user's profile fields
+      security:
+        - userBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '400':
+          description: Request payload failed validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '403':
+          description: Authenticated caller lacks permission to mutate the target profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '409':
+          description: Requested username is already reserved by another profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /profiles/me/avatar:
+    patch:
+      x-surface-status: implemented
+      x-implementation-slice: us2
+      summary: Attach, replace, or remove the current authenticated user's avatar
+      security:
+        - userBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAvatarRequest'
+      responses:
+        '200':
+          description: Avatar updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '400':
+          description: Avatar reference is invalid or cannot be used for the current profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
