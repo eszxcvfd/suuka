@@ -7,6 +7,9 @@
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
+    "perf:auth": "k6 run infra/perf/auth.k6.js",
+    "perf:refresh": "k6 run infra/perf/refresh.k6.js",
+    "perf:password-reset": "k6 run infra/perf/password-reset.k6.js",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
   },

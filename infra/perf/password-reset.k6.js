@@ -11,12 +11,11 @@ export const options = {
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
 
-export default function authScenario() {
+export default function passwordResetScenario() {
   const response = http.post(
-    `${BASE_URL}/v1/auth/sign-in`,
+    `${BASE_URL}/v1/auth/password-reset/request`,
     JSON.stringify({
       email: 'demo@example.com',
-      password: 'password123',
     }),
     {
       headers: { 'Content-Type': 'application/json' },
@@ -24,7 +23,7 @@ export default function authScenario() {
   );
 
   check(response, {
-    'auth request status ok': (r) => r.status === 200 || r.status === 201 || r.status === 401,
+    'password reset request status ok': (r) => r.status === 200 || r.status === 201,
   });
 
   sleep(1);
