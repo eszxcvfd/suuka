@@ -285,7 +285,9 @@ describe('auth verification delivery behavior', () => {
       },
     });
 
-    await expect(service.resendVerification(user.email)).rejects.toThrow('smtp down');
+    await expect(service.resendVerification(user.email)).rejects.toThrow(
+      ServiceUnavailableException,
+    );
 
     expect(createPendingRequest).toHaveBeenCalledOnce();
     expect(deletePendingRequest).toHaveBeenCalledWith('request-1');

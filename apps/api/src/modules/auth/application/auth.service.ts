@@ -275,12 +275,26 @@ export class AuthService {
   async resendVerification(email: string): Promise<{ ok: true }> {
     const user = await this.userRepository.findByEmail(email);
     if (user && !user.emailVerified) {
-      await this.sendVerificationEmail({
-        displayName: user.displayName,
-        email: user.email,
-        id: String((user as unknown as { _id: unknown })._id),
-        status: user.status,
-      });
+      try {
+        await this.sendVerificationEmail({
+          displayName: user.displayName,
+          email: user.email,
+          id: String((user as unknown as { _id: unknown })._id),
+          status: user.status,
+        });
+      } catch {
+        this.recordAuditEvent(
+          'verify_email',
+          'failure',
+          String((user as unknown as { _id: unknown })._id),
+          'verification_email_delivery_failed',
+        );
+        throw new ServiceUnavailableException({
+          code: 'EMAIL_DELIVERY_UNAVAILABLE',
+          message:
+            'We could not deliver your verification email right now. Please try again in a moment.',
+        });
+      }
       this.recordAuditEvent(
         'verify_email',
         'success',

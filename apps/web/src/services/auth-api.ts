@@ -9,6 +9,7 @@ interface ApiErrorEnvelope {
   success: false;
   error?: {
     code?:
+      | 'EMAIL_DELIVERY_UNAVAILABLE'
       | 'EMAIL_VERIFICATION_REQUIRED'
       | 'FORBIDDEN'
       | 'MISSING_SCOPE'
@@ -21,6 +22,7 @@ interface ApiErrorEnvelope {
 }
 
 export type AuthorizationErrorCode =
+  | 'EMAIL_DELIVERY_UNAVAILABLE'
   | 'EMAIL_VERIFICATION_REQUIRED'
   | 'FORBIDDEN'
   | 'MISSING_SCOPE'

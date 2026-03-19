@@ -32,6 +32,11 @@ describe('web auth surface flow follow-up', () => {
     expect(authStoreText).toContain("setMode('verifyEmail')");
   });
 
+  it('maps verification delivery failures to user-facing auth feedback', () => {
+    expect(authStoreText).toContain("error.code === 'EMAIL_DELIVERY_UNAVAILABLE'");
+    expect(authStoreText).toContain('We could not send the verification email right now.');
+  });
+
   it('adds pending state hooks to async auth and workspace actions', () => {
     expect(signInFormText).toContain('const [isSubmitting, setIsSubmitting] = useState(false);');
     expect(mediaUploaderText).toContain('const [isUploading, setIsUploading] = useState(false);');

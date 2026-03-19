@@ -96,6 +96,24 @@ function normalizeDisplayName(displayName: string | undefined, email: string): s
   return email.split('@')[0] ?? email;
 }
 
+function toAuthFeedbackError(error: unknown, fallbackMessage: string): Error {
+  if (error instanceof AuthorizationError) {
+    if (error.code === 'EMAIL_DELIVERY_UNAVAILABLE') {
+      return new Error(
+        'We could not send the verification email right now. Please try again in a moment.',
+      );
+    }
+
+    return new Error(error.message);
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(fallbackMessage);
+}
+
 export function useAuthStore(): AuthState {
   const [mode, setMode] = useState<
     | 'signIn'
@@ -220,7 +238,12 @@ export function useAuthStore(): AuthState {
         if (!email) {
           throw new Error('Email is required');
         }
-        await authApi.resendVerification({ email });
+
+        try {
+          await authApi.resendVerification({ email });
+        } catch (error) {
+          throw toAuthFeedbackError(error, 'Unable to resend verification');
+        }
       },
       async saveProfile(payload: UpdateProfilePayload): Promise<void> {
         try {
@@ -255,13 +278,17 @@ export function useAuthStore(): AuthState {
           throw new Error('Display name, email and password are required');
         }
 
-        const sessionOrUser = await authApi.signUp({ displayName, email, password });
-        const sessionUser = 'user' in sessionOrUser ? sessionOrUser.user : sessionOrUser;
+        try {
+          const sessionOrUser = await authApi.signUp({ displayName, email, password });
+          const sessionUser = 'user' in sessionOrUser ? sessionOrUser.user : sessionOrUser;
 
-        authApi.setAccessToken('accessToken' in sessionOrUser ? sessionOrUser.accessToken : null);
+          authApi.setAccessToken('accessToken' in sessionOrUser ? sessionOrUser.accessToken : null);
 
-        setUser(mapSessionUser(sessionUser));
-        setMode('media');
+          setUser(mapSessionUser(sessionUser));
+          setMode('media');
+        } catch (error) {
+          throw toAuthFeedbackError(error, 'Unable to sign up');
+        }
       },
       async signIn(email: string, password: string): Promise<void> {
         if (!email || !password) {
