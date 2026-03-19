@@ -1,6 +1,8 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { loadAuthConfig } from '../../config/auth.config';
+import { loadMailConfig } from '../../config/mail.config';
 import { AuthService } from './application/auth.service';
 import { PasswordService } from './application/password.service';
 import { TokenService } from './application/token.service';
@@ -11,6 +13,7 @@ import {
   EmailVerificationRequestModel,
   EmailVerificationRequestSchema,
 } from './infrastructure/email-verification-request.schema';
+import { EmailVerificationRequestRepository } from './infrastructure/email-verification-request.repository';
 import {
   RefreshCredentialModel,
   RefreshCredentialSchema,
@@ -23,6 +26,7 @@ import { SessionRepository } from './infrastructure/session.repository';
 import { SessionModel, SessionSchema } from './infrastructure/session.schema';
 import { UserRepository } from './infrastructure/user.repository';
 import { UserModel, UserSchema } from './infrastructure/user.schema';
+import { VerificationEmailService } from './infrastructure/verification-email.service';
 
 @Module({
   imports: [
@@ -46,6 +50,18 @@ import { UserModel, UserSchema } from './infrastructure/user.schema';
     AuthService,
     TokenService,
     PasswordService,
+    {
+      provide: 'AUTH_MAIL_CONFIG_VALIDATION',
+      useFactory: () => {
+        if (loadAuthConfig().requireVerifiedEmail) {
+          loadMailConfig();
+        }
+
+        return true;
+      },
+    },
+    EmailVerificationRequestRepository,
+    VerificationEmailService,
     UserRepository,
     SessionRepository,
     JwtAuthGuard,

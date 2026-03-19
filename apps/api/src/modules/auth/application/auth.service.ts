@@ -1,8 +1,15 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+import { EmailVerificationRequestRepository } from '../infrastructure/email-verification-request.repository';
 import { SessionRepository } from '../infrastructure/session.repository';
 import { UserRepository } from '../infrastructure/user.repository';
+import { VerificationEmailService } from '../infrastructure/verification-email.service';
 import { loadAuthConfig } from '../../../config/auth.config';
 
 interface SessionUser {
@@ -48,15 +55,16 @@ export class AuthService {
     string,
     { email: string; sessionId: string; userId: string }
   >();
-  private readonly verificationTokens = new Map<string, { expiresAt: number; userId: string }>();
   private readonly resetTokens = new Map<string, { expiresAt: number; userId: string }>();
   private readonly auditEvents: AuthAuditEvent[] = [];
 
   constructor(
+    private readonly emailVerificationRequestRepository: EmailVerificationRequestRepository,
     private readonly passwordService: PasswordService,
     private readonly sessionRepository: SessionRepository,
     private readonly tokenService: TokenService,
     private readonly userRepository: UserRepository,
+    private readonly verificationEmailService: VerificationEmailService,
   ) {}
 
   async signUp(email: string, password: string, displayName: string): Promise<AuthSessionResult> {
@@ -78,13 +86,33 @@ export class AuthService {
       passwordHash,
     });
 
-    const session = await this.issueSession({
+    const sessionUser = {
       displayName: created.displayName,
       email: created.email,
       id: String((created as unknown as { _id: unknown })._id),
       status: created.status,
-    });
-    this.recordAuditEvent('register', 'success', session.user.id);
+    };
+
+    if (!loadAuthConfig().requireVerifiedEmail) {
+      await this.userRepository.updateVerificationStatus(sessionUser.id, true);
+    } else {
+      try {
+        await this.sendVerificationEmail(sessionUser);
+      } catch {
+        this.recordAuditEvent(
+          'register',
+          'failure',
+          sessionUser.id,
+          'verification_email_delivery_failed',
+        );
+        throw new ServiceUnavailableException(
+          'Account created but verification email could not be delivered. Request another verification email to continue.',
+        );
+      }
+    }
+
+    const session = await this.issueSession(sessionUser);
+    this.recordAuditEvent('register', 'success', sessionUser.id);
     return session;
   }
 
@@ -211,14 +239,23 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<{ ok: true }> {
-    const active = this.verificationTokens.get(token);
-    if (!active || Date.now() > active.expiresAt) {
+    const now = new Date();
+    await this.emailVerificationRequestRepository.expirePendingRequests(now);
+    const challengeHash = this.tokenService.hashOpaqueToken(token);
+    const active = await this.emailVerificationRequestRepository.findPendingRequestByChallengeHash(
+      challengeHash,
+      now,
+    );
+    if (!active) {
       this.recordAuditEvent('verify_email', 'failure', undefined, 'invalid_token');
       throw new UnauthorizedException('Invalid or expired verification token');
     }
 
     await this.userRepository.updateVerificationStatus(active.userId, true);
-    this.verificationTokens.delete(token);
+    await this.emailVerificationRequestRepository.markCompleted(
+      String((active as unknown as { _id: unknown })._id),
+    );
+    await this.emailVerificationRequestRepository.invalidatePendingRequests(active.userId);
     this.recordAuditEvent('verify_email', 'success', active.userId);
 
     return { ok: true };
@@ -226,11 +263,12 @@ export class AuthService {
 
   async resendVerification(email: string): Promise<{ ok: true }> {
     const user = await this.userRepository.findByEmail(email);
-    if (user) {
-      const token = this.tokenService.generateOpaqueRefreshToken();
-      this.verificationTokens.set(token, {
-        expiresAt: Date.now() + 1000 * 60 * 60 * 24,
-        userId: String((user as unknown as { _id: unknown })._id),
+    if (user && !user.emailVerified) {
+      await this.sendVerificationEmail({
+        displayName: user.displayName,
+        email: user.email,
+        id: String((user as unknown as { _id: unknown })._id),
+        status: user.status,
       });
       this.recordAuditEvent(
         'verify_email',
@@ -293,21 +331,40 @@ export class AuthService {
     const refreshToken = this.tokenService.generateOpaqueRefreshToken();
     this.refreshTokens.set(refreshToken, { email: user.email, sessionId, userId: user.id });
 
-    if (!loadAuthConfig().requireVerifiedEmail) {
-      await this.userRepository.updateVerificationStatus(user.id, true);
-    } else {
-      const verificationToken = this.tokenService.generateOpaqueRefreshToken();
-      this.verificationTokens.set(verificationToken, {
-        expiresAt: Date.now() + 1000 * 60 * 60 * 24,
-        userId: user.id,
-      });
-    }
-
     return {
       accessToken,
       refreshToken,
       user,
     };
+  }
+
+  private async sendVerificationEmail(user: SessionUser): Promise<void> {
+    const token = this.tokenService.generateOpaqueRefreshToken();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
+
+    const request = await this.emailVerificationRequestRepository.createPendingRequest({
+      challengeHash: this.tokenService.hashOpaqueToken(token),
+      expiresAt,
+      userId: user.id,
+    });
+
+    try {
+      await this.verificationEmailService.sendVerificationEmail({
+        displayName: user.displayName,
+        email: user.email,
+        token,
+      });
+    } catch (error) {
+      await this.emailVerificationRequestRepository.deletePendingRequest(
+        String((request as unknown as { _id: unknown })._id),
+      );
+      throw error;
+    }
+
+    await this.emailVerificationRequestRepository.invalidateOtherPendingRequests(
+      user.id,
+      String((request as unknown as { _id: unknown })._id),
+    );
   }
 
   private revokeSessionToken(userId: string, sessionId: string): void {
