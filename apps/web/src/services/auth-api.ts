@@ -8,13 +8,20 @@ interface ApiSuccessEnvelope<TData> {
 interface ApiErrorEnvelope {
   success: false;
   error?: {
-    code?: 'FORBIDDEN' | 'MISSING_SCOPE' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'USERNAME_TAKEN';
+    code?:
+      | 'EMAIL_VERIFICATION_REQUIRED'
+      | 'FORBIDDEN'
+      | 'MISSING_SCOPE'
+      | 'NOT_FOUND'
+      | 'VALIDATION_ERROR'
+      | 'USERNAME_TAKEN';
     message?: string;
     status?: number;
   };
 }
 
 export type AuthorizationErrorCode =
+  | 'EMAIL_VERIFICATION_REQUIRED'
   | 'FORBIDDEN'
   | 'MISSING_SCOPE'
   | 'NOT_FOUND'

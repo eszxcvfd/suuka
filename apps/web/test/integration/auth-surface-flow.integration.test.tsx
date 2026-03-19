@@ -27,6 +27,11 @@ describe('web auth surface flow follow-up', () => {
     expect(mainText).toContain('SessionsPage');
   });
 
+  it('routes unverified sign-in attempts toward verification recovery', () => {
+    expect(authStoreText).toContain("error.code === 'EMAIL_VERIFICATION_REQUIRED'");
+    expect(authStoreText).toContain("setMode('verifyEmail')");
+  });
+
   it('adds pending state hooks to async auth and workspace actions', () => {
     expect(signInFormText).toContain('const [isSubmitting, setIsSubmitting] = useState(false);');
     expect(mediaUploaderText).toContain('const [isUploading, setIsUploading] = useState(false);');

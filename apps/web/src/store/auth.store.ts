@@ -268,10 +268,18 @@ export function useAuthStore(): AuthState {
           throw new Error('Email and password are required');
         }
 
-        const session = await authApi.signIn({ email, password });
-        authApi.setAccessToken(session.accessToken);
-        setUser(mapSessionUser(session.user));
-        setMode('media');
+        try {
+          const session = await authApi.signIn({ email, password });
+          authApi.setAccessToken(session.accessToken);
+          setUser(mapSessionUser(session.user));
+          setMode('media');
+        } catch (error) {
+          if (error instanceof AuthorizationError && error.code === 'EMAIL_VERIFICATION_REQUIRED') {
+            setMode('verifyEmail');
+          }
+
+          throw error;
+        }
       },
       signOut(): void {
         authApi.setAccessToken(null);
