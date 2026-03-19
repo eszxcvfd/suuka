@@ -13,7 +13,7 @@ function readRequired(key: string): string {
   if (!value || value.trim().length === 0) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
-  return value;
+  return stripWrappingQuotes(value.trim());
 }
 
 function readNumber(key: string, fallback: number): number {
@@ -37,6 +37,17 @@ function readBoolean(key: string, fallback: boolean): boolean {
   }
 
   return raw.toLowerCase() === 'true';
+}
+
+function stripWrappingQuotes(value: string): string {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  return value;
 }
 
 export function loadMailConfig(): MailConfig {

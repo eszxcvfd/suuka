@@ -96,9 +96,17 @@ export class VerificationEmailService {
         pass: config.password,
         user: config.user,
       },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
       host: config.host,
       port: config.port,
+      requireTLS: !config.secure,
       secure: config.secure,
+      socketTimeout: 20000,
+      tls: {
+        minVersion: 'TLSv1.2',
+        servername: config.host,
+      },
     });
   }
 }

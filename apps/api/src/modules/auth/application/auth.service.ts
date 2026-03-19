@@ -25,6 +25,8 @@ interface AuthSessionResult {
   user: SessionUser;
 }
 
+type SignUpResult = AuthSessionResult | SessionUser;
+
 interface SessionInfoResult {
   id: string;
   deviceLabel: string;
@@ -67,7 +69,7 @@ export class AuthService {
     private readonly verificationEmailService: VerificationEmailService,
   ) {}
 
-  async signUp(email: string, password: string, displayName: string): Promise<AuthSessionResult> {
+  async signUp(email: string, password: string, displayName: string): Promise<SignUpResult> {
     const existing = await this.userRepository.findByEmail(email);
     if (existing) {
       this.recordAuditEvent(
@@ -113,12 +115,19 @@ export class AuthService {
               'We could not deliver your verification email right now. Please try again in a moment.',
           });
         }
+
+        this.recordAuditEvent('register', 'success', sessionUser.id, 'verification_pending');
+        return sessionUser;
       }
 
       const session = await this.issueSession(sessionUser);
       this.recordAuditEvent('register', 'success', sessionUser.id);
       return session;
     } catch (error) {
+      if (this.shouldKeepAccountAfterFailure(error)) {
+        throw error;
+      }
+
       await this.safeRollbackSignUp(sessionUser.id);
       throw error;
     }
@@ -422,6 +431,19 @@ export class AuthService {
     } catch {
       // Preserve the original sign-up failure rather than masking it with cleanup noise.
     }
+  }
+
+  private shouldKeepAccountAfterFailure(error: unknown): boolean {
+    if (!(error instanceof ServiceUnavailableException)) {
+      return false;
+    }
+
+    const response = error.getResponse();
+    if (!response || typeof response !== 'object') {
+      return false;
+    }
+
+    return (response as { code?: string }).code === 'EMAIL_DELIVERY_UNAVAILABLE';
   }
 
   private recordAuditEvent(

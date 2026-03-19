@@ -150,9 +150,9 @@ describe('auth verification delivery behavior', () => {
     ).rejects.toThrow(ServiceUnavailableException);
 
     expect(userRepository.create).toHaveBeenCalledOnce();
-    expect(userRepository.deleteById).toHaveBeenCalledWith('user-1');
+    expect(userRepository.deleteById).not.toHaveBeenCalled();
     expect(verificationEmailService.sendVerificationEmail).toHaveBeenCalledOnce();
-    expect(invalidatePendingRequests).toHaveBeenCalledWith('user-1');
+    expect(invalidatePendingRequests).not.toHaveBeenCalled();
     expect(sessionRepository.createSession).not.toHaveBeenCalled();
     expect(tokenService.signAccessToken).not.toHaveBeenCalled();
   });
@@ -204,6 +204,56 @@ describe('auth verification delivery behavior', () => {
     expect(createSession).toHaveBeenCalledOnce();
   });
 
+  it('returns a verification-pending user without issuing a session when delivery succeeds', async () => {
+    process.env.AUTH_REQUIRE_VERIFIED_EMAIL = 'true';
+
+    const createdUser = {
+      _id: 'user-pending',
+      displayName: 'Pending Verification',
+      email: 'pending@example.com',
+      status: 'active' as const,
+    };
+
+    const createSession = vi.fn();
+    const signAccessToken = vi.fn();
+    const sendVerificationEmail = vi.fn().mockResolvedValue(undefined);
+    const createPendingRequest = vi.fn().mockResolvedValue({ _id: 'request-pending' });
+
+    const { service } = buildService({
+      emailVerificationRequestRepository: {
+        createPendingRequest,
+        invalidateOtherPendingRequests: vi.fn().mockResolvedValue(undefined),
+      },
+      sessionRepository: {
+        createSession,
+      },
+      tokenService: {
+        generateOpaqueRefreshToken: vi.fn().mockReturnValue('refresh-pending'),
+        signAccessToken,
+      },
+      userRepository: {
+        create: vi.fn().mockResolvedValue(createdUser),
+        findByEmail: vi.fn().mockResolvedValue(null),
+      },
+      verificationEmailService: {
+        sendVerificationEmail,
+      },
+    });
+
+    await expect(
+      service.signUp(createdUser.email, 'secret-pass', createdUser.displayName),
+    ).resolves.toMatchObject({
+      displayName: createdUser.displayName,
+      email: createdUser.email,
+      id: createdUser._id,
+    });
+
+    expect(sendVerificationEmail).toHaveBeenCalledOnce();
+    expect(createPendingRequest).toHaveBeenCalledOnce();
+    expect(createSession).not.toHaveBeenCalled();
+    expect(signAccessToken).not.toHaveBeenCalled();
+  });
+
   it('allows signup without a profile bio in the initial payload', async () => {
     const userSchemaText = fs.readFileSync(
       path.resolve(__dirname, '../../src/modules/auth/infrastructure/user.schema.ts'),
@@ -252,6 +302,34 @@ describe('auth verification delivery behavior', () => {
     await expect(
       service.signUp(createdUser.email, 'secret-pass', createdUser.displayName),
     ).rejects.toThrow(ServiceUnavailableException);
+  });
+
+  it('keeps the created account when verification delivery is unavailable', async () => {
+    const createdUser = {
+      _id: 'user-keep-account',
+      displayName: 'Keep Account',
+      email: 'keep-account@example.com',
+      status: 'active' as const,
+    };
+
+    const deleteById = vi.fn().mockResolvedValue(undefined);
+    const { service, userRepository } = buildService({
+      userRepository: {
+        create: vi.fn().mockResolvedValue(createdUser),
+        deleteById,
+        findByEmail: vi.fn().mockResolvedValue(null),
+      },
+      verificationEmailService: {
+        sendVerificationEmail: vi.fn().mockRejectedValue(new Error('smtp down')),
+      },
+    });
+
+    await expect(
+      service.signUp(createdUser.email, 'secret-pass', createdUser.displayName),
+    ).rejects.toThrow(ServiceUnavailableException);
+
+    expect(userRepository.create).toHaveBeenCalledOnce();
+    expect(deleteById).not.toHaveBeenCalled();
   });
 
   it('keeps prior pending requests valid when resend delivery fails', async () => {
