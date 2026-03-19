@@ -31,7 +31,7 @@ describe('web profile identity integration baseline', () => {
     expect(profileFormText).toContain('username');
     expect(profileFormText).toContain('Avatar');
     expect(profileFormText).toContain('ExternalLinksEditor');
-    expect(externalLinksEditorText).toContain('Add link');
+    expect(externalLinksEditorText).toContain('Add another link');
     expect(externalLinksEditorText).toContain('https://');
   });
 });

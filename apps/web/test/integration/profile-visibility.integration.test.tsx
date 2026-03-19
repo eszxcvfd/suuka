@@ -20,8 +20,8 @@ describe('web profile visibility integration baseline', () => {
   });
 
   it('renders visibility controls for owners and a non-revealing hidden-profile state for viewers', () => {
-    expect(profilePageText).toContain('Profile visibility');
-    expect(profilePageText).toContain('This profile is not available.');
+    expect(profilePageText).toContain('Public profile');
+    expect(profilePageText).toContain('This creator card is not available.');
     expect(profilePageText).toContain('viewerAccountId');
   });
 });

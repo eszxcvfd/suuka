@@ -29,7 +29,7 @@ describe('web profile edit integration baseline', () => {
 
   it('renders a dedicated profile page and form with display name and bio controls', () => {
     expect(profilePageText).toContain('ProfileForm');
-    expect(profilePageText).toContain('Profile settings');
+    expect(profilePageText).toContain('Creator profile');
     expect(profileFormText).toContain('displayName');
     expect(profileFormText).toContain('bio');
     expect(profileFormText).toContain('Save profile');

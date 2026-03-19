@@ -18,14 +18,16 @@ describe('web visibility and ownership integration baseline', () => {
   });
 
   it('renders loading, empty, denied, and general error states on the media page', () => {
-    expect(mediaPageText).toContain('Loading visible media…');
-    expect(mediaPageText).toContain('Access limited by visibility policy.');
-    expect(mediaPageText).toContain('Unable to load workspace media right now.');
+    expect(mediaPageText).toContain('Loading your feed…');
+    expect(mediaPageText).toContain('Some posts stay hidden because this profile is private.');
+    expect(mediaPageText).toContain('Unable to refresh your creator feed right now.');
     expect(mediaPageText).toContain('loadMedia');
   });
 
   it('surfaces stable denied-action feedback from the media list component', () => {
     expect(mediaListText).toContain('deniedActionMessage');
-    expect(mediaListText).toContain('This action is unavailable for the current account context.');
+    expect(mediaListText).toContain(
+      'Some posts stay hidden in this view because the account is private.',
+    );
   });
 });
