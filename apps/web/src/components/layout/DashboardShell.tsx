@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { AuthState } from '../../store/auth.store';
 
 type DashboardMode = 'media' | 'profile' | 'sessions';
@@ -35,6 +35,31 @@ const navigationItems: Array<{
 export function DashboardShell({ auth, children, currentMode }: DashboardShellProps) {
   const displayName = auth.user?.displayName ?? 'Suuka creator';
   const handle = auth.user?.username ? `@${auth.user.username}` : (auth.user?.email ?? 'Creator');
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuId = useId();
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent): void {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setIsProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   function renderAvatar(sizeClassName: string): ReactNode {
     if (auth.user?.avatarUrl) {
@@ -70,25 +95,68 @@ export function DashboardShell({ auth, children, currentMode }: DashboardShellPr
             </span>
           </button>
           <div className="topbar__meta">
-            <div className="user-chip" aria-label={`Signed in as ${displayName}`}>
-              {renderAvatar('user-chip__avatar')}
-              <span className="user-chip__text">
-                <span className="user-chip__name">{displayName}</span>
-                <span className="user-chip__meta">{handle}</span>
-              </span>
-            </div>
-            {currentMode !== 'profile' ? (
+            <div className="profile-menu" ref={profileMenuRef}>
               <button
-                className="button button--outline"
+                aria-controls={profileMenuId}
+                aria-expanded={isProfileMenuOpen}
+                aria-haspopup="menu"
+                aria-label={`Open profile actions for ${displayName}`}
+                className="user-chip user-chip--menu"
+                onClick={() => setIsProfileMenuOpen((open) => !open)}
                 type="button"
-                onClick={() => auth.setMode('profile')}
               >
-                Edit profile
+                {renderAvatar('user-chip__avatar')}
+                <span className="user-chip__text">
+                  <span className="user-chip__name">{displayName}</span>
+                  <span className="user-chip__meta">{handle}</span>
+                </span>
+                <span aria-hidden="true" className="profile-menu__chevron">
+                  ▾
+                </span>
               </button>
-            ) : null}
-            <button className="button button--outline" type="button" onClick={auth.signOut}>
-              Sign out
-            </button>
+              {isProfileMenuOpen ? (
+                <div
+                  aria-label="Profile actions"
+                  className="surface-card profile-menu__panel"
+                  id={profileMenuId}
+                  role="menu"
+                >
+                  <div className="profile-menu__summary">
+                    <div className="profile-menu__identity">
+                      {renderAvatar('profile-menu__avatar')}
+                      <div className="profile-menu__text">
+                        <p className="profile-menu__name">{displayName}</p>
+                        <p className="profile-menu__handle">{handle}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="profile-menu__actions">
+                    <button
+                      className="profile-menu__action"
+                      onClick={() => {
+                        auth.setMode('profile');
+                        setIsProfileMenuOpen(false);
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      {currentMode === 'profile' ? 'Profile settings' : 'Edit profile'}
+                    </button>
+                    <button
+                      className="profile-menu__action profile-menu__action--danger"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        auth.signOut();
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>
