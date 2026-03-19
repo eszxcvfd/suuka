@@ -70,6 +70,7 @@ import { VerificationEmailService } from './infrastructure/verification-email.se
     AuthService,
     TokenService,
     PasswordService,
+    VerificationEmailService,
     UserRepository,
     SessionRepository,
     JwtAuthGuard,

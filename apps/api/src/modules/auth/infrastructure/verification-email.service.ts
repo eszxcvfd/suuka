@@ -8,19 +8,51 @@ interface VerificationEmailInput {
   token: string;
 }
 
+export interface MailConnectivityResult {
+  checkedAt: string;
+  ok: boolean;
+  requestId: string;
+  status: 'reachable' | 'unreachable';
+  failureClass?: 'auth' | 'network' | 'timeout' | 'unknown';
+}
+
 @Injectable()
 export class VerificationEmailService {
+  async verifyConnectivity(requestId: string): Promise<MailConnectivityResult> {
+    const checkedAt = new Date().toISOString();
+
+    try {
+      const transporter = this.createTransporter();
+      await transporter.verify();
+      return {
+        checkedAt,
+        ok: true,
+        requestId,
+        status: 'reachable',
+      };
+    } catch (error) {
+      const failureClass = classifyMailConnectivityFailure(error);
+      console.error(`[MAIL CHECK] ${requestId}`, {
+        checkedAt,
+        failureClass,
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'UnknownError',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      return {
+        checkedAt,
+        failureClass,
+        ok: false,
+        requestId,
+        status: 'unreachable',
+      };
+    }
+  }
+
   async sendVerificationEmail(input: VerificationEmailInput): Promise<void> {
     const config = loadMailConfig();
-    const transporter = nodemailer.createTransport({
-      auth: {
-        pass: config.password,
-        user: config.user,
-      },
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-    });
+    const transporter = this.createTransporter();
 
     const verificationUrl = new URL(config.webBaseUrl);
     verificationUrl.searchParams.set('mode', 'verifyEmail');
@@ -56,6 +88,54 @@ export class VerificationEmailService {
       to: input.email,
     });
   }
+
+  private createTransporter() {
+    const config = loadMailConfig();
+    return nodemailer.createTransport({
+      auth: {
+        pass: config.password,
+        user: config.user,
+      },
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+    });
+  }
+}
+
+function classifyMailConnectivityFailure(
+  error: unknown,
+): 'auth' | 'network' | 'timeout' | 'unknown' {
+  if (!(error instanceof Error)) {
+    return 'unknown';
+  }
+
+  const code = ((error as Error & { code?: string }).code ?? '').toUpperCase();
+  const message = error.message.toLowerCase();
+
+  if (
+    code === 'EAUTH' ||
+    message.includes('invalid login') ||
+    message.includes('username and password not accepted')
+  ) {
+    return 'auth';
+  }
+
+  if (code === 'ETIMEDOUT' || code === 'ESOCKET' || message.includes('timed out')) {
+    return 'timeout';
+  }
+
+  if (
+    code === 'ENOTFOUND' ||
+    code === 'ECONNECTION' ||
+    code === 'ECONNREFUSED' ||
+    code === 'EHOSTUNREACH' ||
+    code === 'ENETUNREACH'
+  ) {
+    return 'network';
+  }
+
+  return 'unknown';
 }
 
 function escapeHtml(value: string): string {

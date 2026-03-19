@@ -8,6 +8,7 @@ import type {
 export type AuthorizationAction =
   | 'account:visibility:update'
   | 'internal:accounts:write'
+  | 'internal:mail:check'
   | 'internal:moderation:read'
   | 'media:delete'
   | 'media:list'
@@ -47,6 +48,14 @@ export const PERMISSION_RULES: Record<AuthorizationAction, PermissionRule> = {
     allowsAdminOverride: false,
     allowsModeratorOverride: false,
     requiredScopes: ['accounts:write'],
+    requiresOwnership: false,
+  },
+  'internal:mail:check': {
+    action: 'internal:mail:check',
+    allowedRoles: ['admin'],
+    allowsAdminOverride: false,
+    allowsModeratorOverride: false,
+    requiredScopes: ['mail:check'],
     requiresOwnership: false,
   },
   'internal:moderation:read': {
