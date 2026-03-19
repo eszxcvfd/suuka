@@ -119,7 +119,7 @@ export class AuthService {
       this.recordAuditEvent('register', 'success', sessionUser.id);
       return session;
     } catch (error) {
-      await this.rollbackSignUp(sessionUser.id);
+      await this.safeRollbackSignUp(sessionUser.id);
       throw error;
     }
   }
@@ -394,10 +394,20 @@ export class AuthService {
     }
   }
 
-  private async rollbackSignUp(userId: string): Promise<void> {
+  private async safeRollbackSignUp(userId: string): Promise<void> {
     this.revokeUserSessions(userId);
-    await this.emailVerificationRequestRepository.invalidatePendingRequests(userId);
-    await this.userRepository.deleteById(userId);
+
+    try {
+      await this.emailVerificationRequestRepository.invalidatePendingRequests(userId);
+    } catch {
+      // Preserve the original sign-up failure rather than masking it with cleanup noise.
+    }
+
+    try {
+      await this.userRepository.deleteById(userId);
+    } catch {
+      // Preserve the original sign-up failure rather than masking it with cleanup noise.
+    }
   }
 
   private recordAuditEvent(

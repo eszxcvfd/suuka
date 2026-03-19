@@ -40,6 +40,13 @@ function readBoolean(key: string, fallback: boolean): boolean {
 }
 
 export function loadMailConfig(): MailConfig {
+  const webBaseUrl = readRequired('WEB_BASE_URL');
+  try {
+    new URL(webBaseUrl);
+  } catch {
+    throw new Error('Invalid URL environment variable: WEB_BASE_URL');
+  }
+
   return {
     fromAddress: readRequired('MAIL_FROM'),
     host: readRequired('MAIL_HOST'),
@@ -47,6 +54,6 @@ export function loadMailConfig(): MailConfig {
     port: readNumber('MAIL_PORT', 587),
     secure: readBoolean('MAIL_SECURE', false),
     user: readRequired('MAIL_USER'),
-    webBaseUrl: readRequired('WEB_BASE_URL'),
+    webBaseUrl,
   };
 }

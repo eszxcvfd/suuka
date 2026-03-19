@@ -62,5 +62,8 @@ describe('auth recovery integration baseline', () => {
     expect(envExampleText).toContain('MAIL_PASSWORD=');
     expect(envExampleText).toContain('MAIL_SECURE=');
     expect(envExampleText).toContain('WEB_BASE_URL=');
+    expect(
+      fs.readFileSync(path.resolve(__dirname, '../../src/config/mail.config.ts'), 'utf8'),
+    ).toContain('Invalid URL environment variable: WEB_BASE_URL');
   });
 });

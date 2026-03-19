@@ -155,6 +155,39 @@ describe('auth verification delivery behavior', () => {
     expect(tokenService.signAccessToken).not.toHaveBeenCalled();
   });
 
+  it('preserves the delivery error when cleanup queries also fail', async () => {
+    const createdUser = {
+      _id: 'user-2',
+      displayName: 'Broken Cleanup',
+      email: 'broken-cleanup@example.com',
+      status: 'active' as const,
+    };
+
+    const { service } = buildService({
+      emailVerificationRequestRepository: {
+        invalidatePendingRequests: vi
+          .fn()
+          .mockRejectedValue(new Error('cleanup invalidation failed')),
+      },
+      tokenService: {
+        generateOpaqueRefreshToken: vi.fn().mockReturnValue('token-2'),
+        hashOpaqueToken: vi.fn().mockReturnValue('hashed-token-2'),
+      },
+      userRepository: {
+        create: vi.fn().mockResolvedValue(createdUser),
+        deleteById: vi.fn().mockRejectedValue(new Error('cleanup delete failed')),
+        findByEmail: vi.fn().mockResolvedValue(null),
+      },
+      verificationEmailService: {
+        sendVerificationEmail: vi.fn().mockRejectedValue(new Error('smtp down')),
+      },
+    });
+
+    await expect(
+      service.signUp(createdUser.email, 'secret-pass', createdUser.displayName),
+    ).rejects.toThrow(ServiceUnavailableException);
+  });
+
   it('keeps prior pending requests valid when resend delivery fails', async () => {
     const user = {
       _id: 'user-1',
