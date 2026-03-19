@@ -13,12 +13,17 @@ export function ExternalLinksEditor({ links, onChange }: ExternalLinksEditorProp
   const nextLinks = links.length > 0 ? links : [];
 
   return (
-    <div className="field-group">
-      <span>External links</span>
+    <div className="field external-links-editor">
+      <span className="field-label">External links</span>
+      <p className="field-support">
+        Pin the destinations that matter most: portfolio, shop, newsletter, or another social.
+      </p>
       {nextLinks.map((link, index) => (
-        <div className="stack-form" key={link.id}>
+        <div className="external-links-editor__item" key={link.id}>
           <input
             aria-label={`Link label ${index + 1}`}
+            className="field-input"
+            placeholder="Link label"
             value={link.label}
             onChange={(event) => {
               const updated = [...nextLinks];
@@ -28,6 +33,7 @@ export function ExternalLinksEditor({ links, onChange }: ExternalLinksEditorProp
           />
           <input
             aria-label={`Link url ${index + 1}`}
+            className="field-input"
             placeholder="https://example.com"
             value={link.url}
             onChange={(event) => {
@@ -48,7 +54,7 @@ export function ExternalLinksEditor({ links, onChange }: ExternalLinksEditorProp
           ])
         }
       >
-        Add link
+        Add another link
       </button>
     </div>
   );
