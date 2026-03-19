@@ -155,6 +155,53 @@ describe('auth verification delivery behavior', () => {
     expect(tokenService.signAccessToken).not.toHaveBeenCalled();
   });
 
+  it('skips verification delivery entirely when verified email is disabled', async () => {
+    process.env.AUTH_REQUIRE_VERIFIED_EMAIL = 'false';
+
+    const createdUser = {
+      _id: 'user-plain-signup',
+      displayName: 'No Verify Needed',
+      email: 'plain-signup@example.com',
+      status: 'active' as const,
+    };
+
+    const createSession = vi.fn().mockResolvedValue({ _id: 'session-1' });
+    const signAccessToken = vi.fn().mockResolvedValue('access-token-plain');
+    const updateVerificationStatus = vi.fn().mockResolvedValue(undefined);
+    const sendVerificationEmail = vi.fn();
+
+    const { service } = buildService({
+      sessionRepository: {
+        createSession,
+      },
+      tokenService: {
+        generateOpaqueRefreshToken: vi.fn().mockReturnValue('refresh-plain'),
+        signAccessToken,
+      },
+      userRepository: {
+        create: vi.fn().mockResolvedValue(createdUser),
+        findByEmail: vi.fn().mockResolvedValue(null),
+        updateVerificationStatus,
+      },
+      verificationEmailService: {
+        sendVerificationEmail,
+      },
+    });
+
+    await expect(
+      service.signUp(createdUser.email, 'secret-pass', createdUser.displayName),
+    ).resolves.toMatchObject({
+      accessToken: 'access-token-plain',
+      user: {
+        email: createdUser.email,
+      },
+    });
+
+    expect(updateVerificationStatus).toHaveBeenCalledWith('user-plain-signup', true);
+    expect(sendVerificationEmail).not.toHaveBeenCalled();
+    expect(createSession).toHaveBeenCalledOnce();
+  });
+
   it('preserves the delivery error when cleanup queries also fail', async () => {
     const createdUser = {
       _id: 'user-2',

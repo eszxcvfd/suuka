@@ -27,6 +27,10 @@ describe('auth recovery integration baseline', () => {
   const authModuleText = fs.readFileSync(authModulePath, 'utf8');
   const apiPackageText = fs.readFileSync(apiPackagePath, 'utf8');
   const envExampleText = fs.readFileSync(envExamplePath, 'utf8');
+  const exceptionFilterText = fs.readFileSync(
+    path.resolve(__dirname, '../../src/common/filters/global-exception.filter.ts'),
+    'utf8',
+  );
 
   it('defines recovery use cases in auth service', () => {
     expect(authServiceText).toContain('async verifyEmail(');
@@ -65,5 +69,11 @@ describe('auth recovery integration baseline', () => {
     expect(
       fs.readFileSync(path.resolve(__dirname, '../../src/config/mail.config.ts'), 'utf8'),
     ).toContain('Invalid URL environment variable: WEB_BASE_URL');
+  });
+
+  it('logs request context for auth failures', () => {
+    expect(exceptionFilterText).toContain('console.error(prefix');
+    expect(exceptionFilterText).toContain('request.originalUrl');
+    expect(exceptionFilterText).toContain('console.warn(prefix');
   });
 });
