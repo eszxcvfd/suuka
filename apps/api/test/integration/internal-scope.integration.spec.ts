@@ -23,6 +23,13 @@ describe('internal scope integration baseline', () => {
   const authorizationServiceText = fs.readFileSync(authorizationServicePath, 'utf8');
   const authConfigText = fs.readFileSync(authConfigPath, 'utf8');
   const sharedTypesText = fs.readFileSync(sharedTypesPath, 'utf8');
+  const internalControllerText = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      '../../src/modules/authorization/adapters/internal-authorization.controller.ts',
+    ),
+    'utf8',
+  );
 
   it('supports declaring internal scopes directly in authorization metadata', () => {
     expect(permissionsDecoratorText).toContain('requiredScopes');
@@ -39,5 +46,12 @@ describe('internal scope integration baseline', () => {
     expect(authConfigText).toContain('internalScopeAudience');
     expect(authConfigText).toContain('servicePrincipalSecret');
     expect(sharedTypesText).toContain('ServicePrincipalGrant');
+  });
+
+  it('exposes an internal mail connectivity diagnostic behind scoped auth', () => {
+    expect(internalControllerText).toContain("@Post('mail/connectivity')");
+    expect(internalControllerText).toContain(
+      "@InternalScopes('internal:mail:check', ['mail:check'])",
+    );
   });
 });
