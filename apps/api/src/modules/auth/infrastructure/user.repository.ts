@@ -72,6 +72,10 @@ export class UserRepository {
     return this.userModel.findById(id).exec();
   }
 
+  async deleteById(id: string): Promise<void> {
+    await this.userModel.deleteOne({ _id: id }).exec();
+  }
+
   async findProfileById(id: string): Promise<ProfileView | null> {
     const user = await this.userModel.findById(id).exec();
     return user ? this.toProfileView(user) : null;

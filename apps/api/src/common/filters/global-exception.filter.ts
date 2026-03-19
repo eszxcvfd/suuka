@@ -24,10 +24,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private resolveMessage(exception: unknown, status: number): string {
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      return 'Internal server error';
-    }
-
     if (exception instanceof HttpException) {
       const payload = exception.getResponse();
       if (typeof payload === 'string') {
@@ -47,14 +43,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return exception.message;
     }
 
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      return 'Internal server error';
+    }
+
     return 'Request failed';
   }
 
   private resolveCode(exception: unknown, status: number): string {
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      return 'INTERNAL_SERVER_ERROR';
-    }
-
     if (exception instanceof HttpException) {
       const payload = exception.getResponse();
       if (payload && typeof payload === 'object') {
@@ -63,6 +59,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           return maybeCode;
         }
       }
+    }
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      return 'INTERNAL_SERVER_ERROR';
     }
 
     return 'REQUEST_FAILED';

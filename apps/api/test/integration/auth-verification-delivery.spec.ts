@@ -50,6 +50,7 @@ function buildService(overrides?: {
 
   const userRepository = {
     create: vi.fn(),
+    deleteById: vi.fn(),
     findByEmail: vi.fn(),
     findById: vi.fn(),
     updateAuthorizationState: vi.fn(),
@@ -121,8 +122,12 @@ describe('auth verification delivery behavior', () => {
       email: 'mailer@example.com',
       status: 'active' as const,
     };
+    const invalidatePendingRequests = vi.fn().mockResolvedValue(undefined);
     const { service, sessionRepository, tokenService, userRepository, verificationEmailService } =
       buildService({
+        emailVerificationRequestRepository: {
+          invalidatePendingRequests,
+        },
         tokenService: {
           generateOpaqueRefreshToken: vi.fn().mockReturnValue('token-1'),
           hashOpaqueToken: vi.fn().mockReturnValue('hashed-token-1'),
@@ -130,6 +135,7 @@ describe('auth verification delivery behavior', () => {
         },
         userRepository: {
           create: vi.fn().mockResolvedValue(createdUser),
+          deleteById: vi.fn().mockResolvedValue(undefined),
           findByEmail: vi.fn().mockResolvedValue(null),
         },
         verificationEmailService: {
@@ -142,7 +148,9 @@ describe('auth verification delivery behavior', () => {
     ).rejects.toThrow(ServiceUnavailableException);
 
     expect(userRepository.create).toHaveBeenCalledOnce();
+    expect(userRepository.deleteById).toHaveBeenCalledWith('user-1');
     expect(verificationEmailService.sendVerificationEmail).toHaveBeenCalledOnce();
+    expect(invalidatePendingRequests).toHaveBeenCalledWith('user-1');
     expect(sessionRepository.createSession).not.toHaveBeenCalled();
     expect(tokenService.signAccessToken).not.toHaveBeenCalled();
   });

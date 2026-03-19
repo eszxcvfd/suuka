@@ -92,28 +92,36 @@ export class AuthService {
       id: String((created as unknown as { _id: unknown })._id),
       status: created.status,
     };
+    const config = loadAuthConfig();
 
-    if (!loadAuthConfig().requireVerifiedEmail) {
-      await this.userRepository.updateVerificationStatus(sessionUser.id, true);
-    } else {
-      try {
-        await this.sendVerificationEmail(sessionUser);
-      } catch {
-        this.recordAuditEvent(
-          'register',
-          'failure',
-          sessionUser.id,
-          'verification_email_delivery_failed',
-        );
-        throw new ServiceUnavailableException(
-          'Account created but verification email could not be delivered. Request another verification email to continue.',
-        );
+    try {
+      if (!config.requireVerifiedEmail) {
+        await this.userRepository.updateVerificationStatus(sessionUser.id, true);
+      } else {
+        try {
+          await this.sendVerificationEmail(sessionUser);
+        } catch {
+          this.recordAuditEvent(
+            'register',
+            'failure',
+            sessionUser.id,
+            'verification_email_delivery_failed',
+          );
+          throw new ServiceUnavailableException({
+            code: 'EMAIL_DELIVERY_UNAVAILABLE',
+            message:
+              'We could not deliver your verification email right now. Please try again in a moment.',
+          });
+        }
       }
-    }
 
-    const session = await this.issueSession(sessionUser);
-    this.recordAuditEvent('register', 'success', sessionUser.id);
-    return session;
+      const session = await this.issueSession(sessionUser);
+      this.recordAuditEvent('register', 'success', sessionUser.id);
+      return session;
+    } catch (error) {
+      await this.rollbackSignUp(sessionUser.id);
+      throw error;
+    }
   }
 
   async signIn(email: string, password: string): Promise<AuthSessionResult> {
@@ -131,7 +139,10 @@ export class AuthService {
         String((user as unknown as { _id: unknown })._id),
         'email_unverified',
       );
-      throw new UnauthorizedException('Email verification required');
+      throw new UnauthorizedException({
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+        message: 'Email verification required. Open the verification screen or request a new code.',
+      });
     }
 
     const validPassword = await this.passwordService.matches(password, user.passwordHash);
@@ -381,6 +392,12 @@ export class AuthService {
         this.refreshTokens.delete(token);
       }
     }
+  }
+
+  private async rollbackSignUp(userId: string): Promise<void> {
+    this.revokeUserSessions(userId);
+    await this.emailVerificationRequestRepository.invalidatePendingRequests(userId);
+    await this.userRepository.deleteById(userId);
   }
 
   private recordAuditEvent(
