@@ -209,8 +209,16 @@ describe('auth verification delivery behavior', () => {
       path.resolve(__dirname, '../../src/modules/auth/infrastructure/user.schema.ts'),
       'utf8',
     );
+    const userRepositoryText = fs.readFileSync(
+      path.resolve(__dirname, '../../src/modules/auth/infrastructure/user.repository.ts'),
+      'utf8',
+    );
 
     expect(userSchemaText).toContain("@Prop({ required: false, default: '' })");
+    expect(userRepositoryText).toContain(
+      "bio: input.bio && input.bio.length > 0 ? input.bio : ' '",
+    );
+    expect(userRepositoryText).toContain("bio: user.bio?.trim() ?? ''");
   });
 
   it('preserves the delivery error when cleanup queries also fail', async () => {

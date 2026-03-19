@@ -39,7 +39,7 @@ export class UserRepository {
     return {
       accountVisibility: user.accountVisibility,
       avatarUrl: null,
-      bio: user.bio ?? '',
+      bio: user.bio?.trim() ?? '',
       displayName: user.displayName,
       externalLinks: user.externalLinks ?? [],
       accountId: this.getUserId(user),
@@ -50,7 +50,7 @@ export class UserRepository {
   async create(input: CreateUserInput): Promise<UserModel> {
     return this.userModel.create({
       avatarMediaId: input.avatarMediaId ?? null,
-      bio: input.bio ?? '',
+      bio: input.bio && input.bio.length > 0 ? input.bio : ' ',
       displayName: input.displayName,
       email: input.email.toLowerCase(),
       externalLinks: input.externalLinks ?? [],
