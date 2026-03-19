@@ -17,7 +17,7 @@ export class UserModel {
   @Prop({ required: false, lowercase: true, trim: true, unique: true, sparse: true })
   usernameCanonical?: string;
 
-  @Prop({ required: true, default: '' })
+  @Prop({ required: false, default: '' })
   bio!: string;
 
   @Prop({ type: String, required: false, default: null })

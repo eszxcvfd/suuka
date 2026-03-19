@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { AuthService } from '../../src/modules/auth/application/auth.service';
@@ -200,6 +202,15 @@ describe('auth verification delivery behavior', () => {
     expect(updateVerificationStatus).toHaveBeenCalledWith('user-plain-signup', true);
     expect(sendVerificationEmail).not.toHaveBeenCalled();
     expect(createSession).toHaveBeenCalledOnce();
+  });
+
+  it('allows signup without a profile bio in the initial payload', async () => {
+    const userSchemaText = fs.readFileSync(
+      path.resolve(__dirname, '../../src/modules/auth/infrastructure/user.schema.ts'),
+      'utf8',
+    );
+
+    expect(userSchemaText).toContain("@Prop({ required: false, default: '' })");
   });
 
   it('preserves the delivery error when cleanup queries also fail', async () => {
