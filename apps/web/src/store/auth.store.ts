@@ -281,11 +281,11 @@ export function useAuthStore(): AuthState {
         try {
           const sessionOrUser = await authApi.signUp({ displayName, email, password });
           const sessionUser = 'user' in sessionOrUser ? sessionOrUser.user : sessionOrUser;
+          const hasSession = 'accessToken' in sessionOrUser;
 
-          authApi.setAccessToken('accessToken' in sessionOrUser ? sessionOrUser.accessToken : null);
-
+          authApi.setAccessToken(hasSession ? sessionOrUser.accessToken : null);
           setUser(mapSessionUser(sessionUser));
-          setMode('media');
+          setMode(hasSession ? 'media' : 'verifyEmail');
         } catch (error) {
           throw toAuthFeedbackError(error, 'Unable to sign up');
         }

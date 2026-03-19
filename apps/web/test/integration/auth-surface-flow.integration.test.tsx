@@ -37,6 +37,11 @@ describe('web auth surface flow follow-up', () => {
     expect(authStoreText).toContain('We could not send the verification email right now.');
   });
 
+  it('routes signup without a session into email verification mode', () => {
+    expect(authStoreText).toContain("const hasSession = 'accessToken' in sessionOrUser");
+    expect(authStoreText).toContain("setMode(hasSession ? 'media' : 'verifyEmail')");
+  });
+
   it('adds pending state hooks to async auth and workspace actions', () => {
     expect(signInFormText).toContain('const [isSubmitting, setIsSubmitting] = useState(false);');
     expect(mediaUploaderText).toContain('const [isUploading, setIsUploading] = useState(false);');
