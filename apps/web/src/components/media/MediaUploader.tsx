@@ -35,7 +35,7 @@ export function MediaUploader({ onUpload }: MediaUploaderProps) {
         htmlFor={inputId}
         aria-disabled={isUploading}
       >
-        {isUploading ? 'Uploading…' : 'Upload media'}
+        {isUploading ? 'Sharing…' : 'Share new post'}
       </label>
     </div>
   );

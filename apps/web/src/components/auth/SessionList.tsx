@@ -25,9 +25,9 @@ export function SessionList({ sessions, onRevoke }: SessionListProps) {
   if (sessions.length === 0) {
     return (
       <div className="empty-state" role="status">
-        <p className="empty-state__title">No active sessions found.</p>
+        <p className="empty-state__title">No signed-in devices found.</p>
         <p className="empty-state__text">
-          When new devices sign in, they’ll appear here for review.
+          The next phone, browser, or laptop that signs in will appear here for review.
         </p>
       </div>
     );
@@ -36,15 +36,16 @@ export function SessionList({ sessions, onRevoke }: SessionListProps) {
   return (
     <ul className="session-list">
       {sessions.map((session) => (
-        <li key={session.id} className="list-card">
+        <li key={session.id} className="list-card session-card">
           <div className="list-card__body">
             <p className="list-card__title">{session.deviceLabel}</p>
             <p className="list-card__meta">
-              Last activity: {new Date(session.lastActivityAt).toLocaleString()}
+              {session.isCurrent ? 'This device' : 'Recent activity'} ·{' '}
+              {new Date(session.lastActivityAt).toLocaleString()}
             </p>
           </div>
           {session.isCurrent ? (
-            <span className="status-badge">Current</span>
+            <span className="status-badge">This device</span>
           ) : (
             <div className="list-card__actions">
               <button
@@ -55,7 +56,7 @@ export function SessionList({ sessions, onRevoke }: SessionListProps) {
                   void handleRevoke(session.id);
                 }}
               >
-                {pendingSessionId === session.id ? 'Revoking…' : 'Revoke'}
+                {pendingSessionId === session.id ? 'Signing out…' : 'Sign out device'}
               </button>
             </div>
           )}

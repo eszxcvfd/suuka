@@ -31,15 +31,16 @@ export function SessionsPage({ auth }: SessionsPageProps) {
   }
 
   return (
-    <DashboardShell auth={auth}>
+    <DashboardShell auth={auth} currentMode="sessions">
       <div className="page-shell dashboard-stack">
-        <section className="surface-card section-panel page-section">
+        <section className="surface-card section-panel page-section feed-hero">
           <header className="section-header">
             <div className="section-header__content">
-              <span className="eyebrow-label">Security</span>
-              <h1 className="section-header__title">Active sessions</h1>
+              <span className="eyebrow-label">Account safety</span>
+              <h1 className="section-header__title">Where you’re signed in</h1>
               <p className="section-header__text">
-                Review current device access and revoke older sessions when needed.
+                Keep track of every phone, laptop, and browser currently connected to your creator
+                account.
               </p>
             </div>
             <div className="page-actions page-actions--start">
@@ -48,7 +49,7 @@ export function SessionsPage({ auth }: SessionsPageProps) {
                 type="button"
                 onClick={() => auth.setMode('media')}
               >
-                Media
+                Back to feed
               </button>
               <button
                 className="button button--outline"
@@ -58,24 +59,53 @@ export function SessionsPage({ auth }: SessionsPageProps) {
                   void handleRevokeOthers();
                 }}
               >
-                {isRevokingOthers ? 'Revoking others…' : 'Revoke others'}
+                {isRevokingOthers ? 'Signing out others…' : 'Sign out other devices'}
               </button>
             </div>
           </header>
-
-          <div className="page-panel">
+          <div className="page-panel feed-hero__footer">
             <div className="metric-strip" aria-label="Session summary">
-              <span className="metric-chip">{auth.sessions.length} active</span>
-              <span className="metric-chip">{otherSessions} additional devices</span>
+              <span className="metric-chip">{auth.sessions.length} devices active</span>
+              <span className="metric-chip">{otherSessions} additional logins</span>
+              <span className="metric-chip">
+                {currentSession?.deviceLabel ?? 'Current browser'}
+              </span>
             </div>
-            <SessionList
-              sessions={auth.sessions}
-              onRevoke={async (sessionId) => {
-                await auth.revokeSession(sessionId);
-              }}
-            />
           </div>
         </section>
+
+        <div className="content-grid">
+          <section className="surface-card section-panel page-section">
+            <header className="section-header">
+              <div className="section-header__content">
+                <span className="eyebrow-label">Signed-in places</span>
+                <h2 className="section-header__title">Device activity</h2>
+                <p className="section-header__text">
+                  Review connected devices and sign out anything that doesn’t belong in your daily
+                  workflow.
+                </p>
+              </div>
+            </header>
+            <div className="page-panel">
+              <SessionList
+                sessions={auth.sessions}
+                onRevoke={async (sessionId) => {
+                  await auth.revokeSession(sessionId);
+                }}
+              />
+            </div>
+          </section>
+          <aside className="sidebar-stack">
+            <section className="surface-card section-panel social-note">
+              <span className="eyebrow-label">Quick reminder</span>
+              <h2 className="social-note__title">Creator accounts travel fast.</h2>
+              <p className="social-note__text">
+                If you log in from client machines or borrowed devices, clear them here as soon as
+                the session is over.
+              </p>
+            </section>
+          </aside>
+        </div>
       </div>
     </DashboardShell>
   );
