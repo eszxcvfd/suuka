@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import nodemailer from 'nodemailer';
+import type Mail from 'nodemailer/lib/mailer';
 import { loadMailConfig } from '../../../config/mail.config';
 
 interface VerificationEmailInput {
@@ -18,11 +19,13 @@ export interface MailConnectivityResult {
 
 @Injectable()
 export class VerificationEmailService {
+  private transporter: Mail | null = null;
+
   async verifyConnectivity(requestId: string): Promise<MailConnectivityResult> {
     const checkedAt = new Date().toISOString();
 
     try {
-      const transporter = this.createTransporter();
+      const transporter = this.getTransporter();
       await transporter.verify();
       return {
         checkedAt,
@@ -52,7 +55,7 @@ export class VerificationEmailService {
 
   async sendVerificationEmail(input: VerificationEmailInput): Promise<void> {
     const config = loadMailConfig();
-    const transporter = this.createTransporter();
+    const transporter = this.getTransporter();
 
     const verificationUrl = new URL(config.webBaseUrl);
     verificationUrl.searchParams.set('mode', 'verifyEmail');
@@ -80,18 +83,26 @@ export class VerificationEmailService {
       '<p>If you did not create this account, you can ignore this email.</p>',
     ].join('');
 
-    await transporter.sendMail({
-      from: config.fromAddress,
-      html,
-      subject: 'Verify your Suuka email',
-      text: plainText,
-      to: input.email,
-    });
+    await this.sendWithRetry(
+      async () =>
+        transporter.sendMail({
+          from: config.fromAddress,
+          html,
+          subject: 'Verify your Suuka email',
+          text: plainText,
+          to: input.email,
+        }),
+      input.email,
+    );
   }
 
-  private createTransporter() {
+  private getTransporter(): Mail {
+    if (this.transporter) {
+      return this.transporter;
+    }
+
     const config = loadMailConfig();
-    return nodemailer.createTransport({
+    this.transporter = nodemailer.createTransport({
       auth: {
         pass: config.password,
         user: config.user,
@@ -99,6 +110,9 @@ export class VerificationEmailService {
       connectionTimeout: 15000,
       greetingTimeout: 15000,
       host: config.host,
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 20,
       port: config.port,
       requireTLS: !config.secure,
       secure: config.secure,
@@ -108,6 +122,38 @@ export class VerificationEmailService {
         servername: config.host,
       },
     });
+
+    return this.transporter;
+  }
+
+  private async sendWithRetry(operation: () => Promise<unknown>, recipient: string): Promise<void> {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        await operation();
+        return;
+      } catch (error) {
+        lastError = error;
+        const failureClass = classifyMailConnectivityFailure(error);
+
+        console.error('[MAIL SEND]', {
+          attempt,
+          failureClass,
+          message: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : 'UnknownError',
+          recipientDomain: recipient.split('@')[1] ?? 'unknown',
+        });
+
+        if (attempt === 2 || (failureClass !== 'network' && failureClass !== 'timeout')) {
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 750));
+      }
+    }
+
+    throw lastError;
   }
 }
 
