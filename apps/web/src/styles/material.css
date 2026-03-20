@@ -513,6 +513,7 @@ img {
 }
 
 .shell-frame {
+  display: grid;
   grid-template-columns: minmax(230px, 270px) minmax(0, 1fr);
   align-items: start;
   gap: var(--space-6);
